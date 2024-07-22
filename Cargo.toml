@@ -8,3 +8,4 @@ kube = { version = "0.92.1", features = ["runtime", "derive"] }
 k8s-openapi = { version = "0.22.0", features = ["latest"] }
 tokio = { version = "1.38.1", features = ["full"] }
 futures = { version = "0.3.17", default-features = false }
+handlebars = "6.0.0"

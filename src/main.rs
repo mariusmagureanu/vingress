@@ -6,6 +6,8 @@ use kube::{
 };
 use std::pin::pin;
 
+mod vcl;
+
 #[tokio::main]
 async fn main() {
     let client = Client::try_default().await.unwrap();
