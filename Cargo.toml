@@ -1,0 +1,10 @@
+[package]
+name = "vingress"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kube = { version = "0.92.1", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.22.0", features = ["latest"] }
+tokio = { version = "1.38.1", features = ["full"] }
+futures = { version = "0.3.17", default-features = false }
