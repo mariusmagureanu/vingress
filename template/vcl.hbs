@@ -1,0 +1,21 @@
+vcl 4.1;
+
+import directors;
+import std;
+
+{{#each backend as |b| }}
+backend {{ b.Name }} {
+
+  .host = "{{ b.Host }}";
+  .port = "{{ b.Port }}";
+}
+  
+{{/each}}
+
+sub vcl_recv {
+{{#each backend as |b| }}
+ if (req.http.host == "{{ b.Host}}") {
+        set req.backend_hint = {{ b.Name }};
+    }
+{{/each}}
+}

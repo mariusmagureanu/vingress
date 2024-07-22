@@ -7,6 +7,7 @@ use kube::{
 use std::pin::pin;
 
 mod vcl;
+pub use vcl::load_template;
 
 #[tokio::main]
 async fn main() {

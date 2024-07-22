@@ -1,7 +1,14 @@
 use handlebars::Handlebars;
 
-fn load_template(vcl_template: &str) {
+#[derive(Debug)]
+pub struct Backend {
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+}
+
+pub fn load_template(vcl_template: &str) {
     let mut hb = Handlebars::new();
 
-    hb.register_template_file("vcl", vcl_template); 
+    let _ = hb.register_template_file("vcl", vcl_template);
 }
