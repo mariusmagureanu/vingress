@@ -4,18 +4,17 @@ import directors;
 import std;
 
 {{#each backend as |b| }}
-backend {{ b.Name }} {
-
-  .host = "{{ b.Host }}";
-  .port = "{{ b.Port }}";
+backend {{ b.name }} {
+  .host = "{{ b.host }}";
+  .port = "{{ b.port }}";
 }
   
 {{/each}}
 
 sub vcl_recv {
 {{#each backend as |b| }}
- if (req.http.host == "{{ b.Host}}") {
-        set req.backend_hint = {{ b.Name }};
+ if (req.http.host == "{{ b.host}}") {
+        set req.backend_hint = {{ b.name }};
     }
 {{/each}}
 }

@@ -1690,6 +1690,9 @@ dependencies = [
  "handlebars",
  "k8s-openapi",
  "kube",
+ "serde",
+ "serde_derive",
+ "serde_json",
  "tokio",
 ]
 
