@@ -1,6 +1,10 @@
-use crate::vcl::update;
+#[cfg(test)]
+mod test {
 
-#[test]
-fn test_vcl_load() {
-    update("./template/vcl.hbs");
+    use crate::vcl::update;
+
+    #[test]
+    fn test_vcl_load() {
+        update("./template/vcl.hbs");
+    }
 }
