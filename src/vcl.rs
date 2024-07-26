@@ -2,6 +2,15 @@ use handlebars::{to_json, Handlebars};
 use serde::Serialize;
 use serde_json::value::Map;
 
+#[derive(Debug, PartialEq)]
+pub struct UpdateError(String);
+
+impl std::fmt::Display for UpdateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct Backend {
     pub name: String,
@@ -9,20 +18,54 @@ pub struct Backend {
     pub port: u16,
 }
 
-pub fn update(vcl_template: &str) {
+#[derive(Serialize)]
+pub struct Vcl {
+    pub template: String,
+    pub file: String,
+    pub content: String,
+}
+
+impl UpdateError {
+    pub fn new(err_text: String) -> Self {
+        UpdateError(err_text)
+    }
+}
+
+impl Vcl {
+    pub fn new(file: String, template: String) -> Self {
+        Vcl {
+            template,
+            file,
+            content: String::new(),
+        }
+    }
+}
+
+impl Backend {
+    pub fn new(name: String, host: String, port: u16) -> Self {
+        Backend { name, host, port }
+    }
+}
+
+pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
+    if backends.is_empty() {
+        return Some(UpdateError("Backends cannot be empty".to_string()));
+    }
+
     let mut hb = Handlebars::new();
 
-    hb.register_template_file("vcl", vcl_template).unwrap();
+    if let Err(e) = hb.register_template_file("vcl", vcl.template.clone()) {
+        return Some(UpdateError(e.to_string()));
+    }
 
-    let b = Backend {
-        name: "foobar".to_string(),
-        host: "foobar.com".to_string(),
-        port: 6081,
-    };
+    let mut vcl_data = Map::new();
 
-    let mut ba: Vec<Backend> = vec![];
-    ba.push(b);
-    let mut data = Map::new();
-    data.insert("backend".to_string(), to_json(ba));
-    println!("{}", hb.render("vcl", &data).unwrap());
+    vcl_data.insert("backend".to_string(), to_json(backends));
+
+    match hb.render("vcl", &vcl_data) {
+        Ok(c) => vcl.content = c,
+        Err(e) => return Some(UpdateError::new(e.to_string())),
+    }
+
+    None
 }
