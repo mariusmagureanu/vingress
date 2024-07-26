@@ -16,16 +16,16 @@ impl std::fmt::Display for UpdateError {
 }
 
 #[derive(Debug, Serialize)]
-pub struct Backend {
-    pub name: String,
-    pub host: String,
+pub struct Backend<'a> {
+    pub name: &'a str,
+    pub host: &'a str,
     pub port: u16,
 }
 
 #[derive(Serialize)]
-pub struct Vcl {
-    pub template: String,
-    pub file: String,
+pub struct Vcl<'a> {
+    pub template: &'a str,
+    pub file: &'a str,
     pub content: String,
 }
 
@@ -35,8 +35,8 @@ impl UpdateError {
     }
 }
 
-impl Vcl {
-    pub fn new(file: String, template: String) -> Self {
+impl<'a> Vcl<'a> {
+    pub fn new(file: &'a str, template: &'a str) -> Self {
         Vcl {
             template,
             file,
@@ -45,8 +45,8 @@ impl Vcl {
     }
 }
 
-impl Backend {
-    pub fn new(name: String, host: String, port: u16) -> Self {
+impl<'a> Backend<'a> {
+    pub fn new(name: &'a str, host: &'a str, port: u16) -> Self {
         Backend { name, host, port }
     }
 }
@@ -58,7 +58,7 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 
     let mut hb = Handlebars::new();
 
-    if let Err(e) = hb.register_template_file(VCL, vcl.template.clone()) {
+    if let Err(e) = hb.register_template_file(VCL, vcl.template) {
         return Some(UpdateError(e.to_string()));
     }
 
@@ -71,7 +71,7 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
         Err(e) => return Some(UpdateError::new(e.to_string())),
     };
 
-    match File::create(vcl.file.clone()) {
+    match File::create(vcl.file) {
         Ok(mut f) => {
             let _ = f.write_all(vcl.content.as_bytes());
         }
