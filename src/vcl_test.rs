@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod test {
 
-    use crate::vcl::{update, Backend, UpdateError, Vcl};
+    use crate::vcl::{update, Backend, Vcl};
+    use std::{fs::File, io::Read};
 
     #[test]
     fn test_vcl_load() {
@@ -21,11 +22,17 @@ mod test {
         backends.push(b3);
 
         if let Some(e) = update(&mut v, backends) {
-            assert!(e.to_string().len() > 0);
-            assert_eq!(e, UpdateError::new(String::from("foo bar")));
+            panic!("{}", e);
         }
 
-        assert!(v.content.len() > 0);
-        println!("{:?}", v.content);
+        match File::open("default.vcl") {
+            Ok(mut vf) => {
+                let mut vcl_content_from_file: String = Default::default();
+                let _ = vf.read_to_string(&mut vcl_content_from_file);
+
+                assert_eq!(v.content.len(), vcl_content_from_file.len());
+            }
+            Err(e) => panic!("{}", e),
+        }
     }
 }
