@@ -1,6 +1,10 @@
 use handlebars::{to_json, Handlebars};
 use serde::Serialize;
 use serde_json::value::Map;
+use std::{fs::File, io::Write};
+
+const BACKEND: &str = "backend";
+const VCL: &str = "vcl";
 
 #[derive(Debug, PartialEq)]
 pub struct UpdateError(String);
@@ -54,18 +58,25 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 
     let mut hb = Handlebars::new();
 
-    if let Err(e) = hb.register_template_file("vcl", vcl.template.clone()) {
+    if let Err(e) = hb.register_template_file(VCL, vcl.template.clone()) {
         return Some(UpdateError(e.to_string()));
     }
 
     let mut vcl_data = Map::new();
 
-    vcl_data.insert("backend".to_string(), to_json(backends));
+    vcl_data.insert(BACKEND.to_string(), to_json(backends));
 
-    match hb.render("vcl", &vcl_data) {
+    match hb.render(VCL, &vcl_data) {
         Ok(c) => vcl.content = c,
         Err(e) => return Some(UpdateError::new(e.to_string())),
-    }
+    };
+
+    match File::create(vcl.file.clone()) {
+        Ok(mut f) => {
+            let _ = f.write_all(vcl.content.as_bytes());
+        }
+        Err(e) => return Some(UpdateError(e.to_string())),
+    };
 
     None
 }
