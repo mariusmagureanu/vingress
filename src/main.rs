@@ -5,7 +5,7 @@ use kube::{
     Api, Client,
 };
 use std::pin::pin;
-use vcl::Backend;
+use vcl::{update, Backend, Vcl};
 
 mod vcl;
 mod vcl_test;
@@ -21,22 +21,21 @@ async fn main() {
 
     let mut obs = pin!(obs);
 
-    let mut backends: Vec<Backend> = vec![];
-
     while let Some(n) = obs.try_next().await.unwrap() {
-        if n.spec
-            .clone()
-            .unwrap()
-            .ingress_class_name
-            .unwrap()
-            .to_lowercase()
-            != "varnish".to_string()
-        {
+
+        let ing_class = n.spec.clone().unwrap().ingress_class_name;
+
+        if ing_class.is_none() {
             continue;
         }
 
-        println!("{:?}", n.metadata.name);
+        let class_name = ing_class.unwrap().to_lowercase();
 
+        if class_name != "varnish".to_string() {
+            continue;
+        }
+
+        let mut backends: Vec<Backend> = vec![];
         n.spec.unwrap().rules.unwrap().iter().for_each(|x| {
             x.http.clone().unwrap().paths.iter().for_each(|y| {
                 let backend = Backend::new(
@@ -57,6 +56,9 @@ async fn main() {
 
                 backends.push(backend);
             })
-        })
+        });
+
+        let mut v = Vcl::new("default.vcl", "./template/vcl.hbs");
+        update(&mut v, backends);
     }
 }
