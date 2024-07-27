@@ -10,9 +10,9 @@ mod test {
 
         let mut backends: Vec<Backend> = vec![];
 
-        let b1 = Backend::new("alpha", "alpha.foo.com", 8081);
-        let b2 = Backend::new("beta", "beta.foo.com", 8082);
-        let b3 = Backend::new("delta", "delta.foo.com", 8083);
+        let b1 = Backend::new(String::from("alpha"),String::from( "alpha.foo.com"), "/".to_string(), 8081);
+        let b2 = Backend::new(String::from("beta"), String::from("beta.foo.com"), "/foo".to_string(), 8082);
+        let b3 = Backend::new(String::from("delta"),String::from( "delta.foo.com"), "/bar".to_string(), 8083);
 
         backends.push(b1);
         backends.push(b2);

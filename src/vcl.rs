@@ -15,10 +15,11 @@ impl std::fmt::Display for UpdateError {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct Backend<'a> {
-    pub name: &'a str,
-    pub host: &'a str,
+#[derive(Debug, Serialize, Clone)]
+pub struct Backend {
+    pub name: String,
+    pub host: String,
+    pub path: String,
     pub port: u16,
 }
 
@@ -45,9 +46,14 @@ impl<'a> Vcl<'a> {
     }
 }
 
-impl<'a> Backend<'a> {
-    pub fn new(name: &'a str, host: &'a str, port: u16) -> Self {
-        Backend { name, host, port }
+impl Backend {
+    pub fn new(name: String, host: String, path: String, port: u16) -> Self {
+        Backend {
+            name,
+            host,
+            path,
+            port,
+        }
     }
 }
 
