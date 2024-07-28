@@ -1,3 +1,5 @@
+use log::{debug, error, info};
+
 use futures::TryStreamExt;
 use k8s_openapi::api::networking::v1::Ingress;
 use kube::{
@@ -5,6 +7,7 @@ use kube::{
     Api, Client,
 };
 use std::pin::pin;
+use std::process;
 use vcl::{update, Backend, Vcl};
 
 mod vcl;
@@ -12,26 +15,48 @@ mod vcl_test;
 
 #[tokio::main]
 async fn main() {
-    let client = Client::try_default().await.unwrap();
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
 
+    let client = match Client::try_default().await {
+        Ok(c) => c,
+        Err(e) => {
+            error!("{}", e);
+            process::exit(1);
+        }
+    };
+
+    let cluster_name = match get_cluster_name_from_context() {
+        Ok(cn) => cn,
+        Err(e) => {
+            error!("{}", e);
+            process::exit(1);
+        }
+    };
+
+    info!("connected to cluster: {}", cluster_name);
+
+    watch_ingresses(client).await;
+}
+
+async fn watch_ingresses(client: Client) {
     let ings: Api<Ingress> = Api::all(client);
 
     let wc = watcher::Config::default();
-    let obs = watcher(ings, wc).default_backoff().applied_objects();
+    let observer = watcher(ings, wc).default_backoff().applied_objects();
 
-    let mut obs = pin!(obs);
+    let mut obs = pin!(observer);
 
     while let Some(n) = obs.try_next().await.unwrap() {
-
         let ing_class = n.spec.clone().unwrap().ingress_class_name;
 
-        if ing_class.is_none() {
-            continue;
-        }
+        let class_name = match ing_class {
+            Some(ic) => ic.to_lowercase(),
+            None => continue,
+        };
 
-        let class_name = ing_class.unwrap().to_lowercase();
-
-        if class_name != "varnish".to_string() {
+        if class_name != "varnish" {
+            debug!("skipping ingress class {}", class_name);
             continue;
         }
 
@@ -59,6 +84,22 @@ async fn main() {
         });
 
         let mut v = Vcl::new("default.vcl", "./template/vcl.hbs");
-        update(&mut v, backends);
+
+        match update(&mut v, backends) {
+            None => info!("default.vcl file has just been updated"),
+            Some(e) => error!("{}", e),
+        }
+    }
+}
+
+fn get_cluster_name_from_context() -> Result<String, String> {
+    let kube_config = match kube::config::Kubeconfig::read() {
+        Ok(kc) => kc,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    match kube_config.current_context {
+        Some(kcc) => Ok(kcc),
+        None => Err("could not retrieve a current k8s context".to_string()),
     }
 }

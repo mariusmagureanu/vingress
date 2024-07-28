@@ -59,7 +59,7 @@ impl Backend {
 
 pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     if backends.is_empty() {
-        return Some(UpdateError("Backends cannot be empty".to_string()));
+        return Some(UpdateError("backends cannot be empty".to_string()));
     }
 
     let mut hb = Handlebars::new();
