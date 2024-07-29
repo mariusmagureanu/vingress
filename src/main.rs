@@ -1,5 +1,6 @@
 use log::{debug, error, info, warn};
 
+use clap::Parser;
 use futures::TryStreamExt;
 use k8s_openapi::api::networking::v1::Ingress;
 use kube::{
@@ -13,9 +14,28 @@ use vcl::{update, Backend, Vcl};
 mod vcl;
 mod vcl_test;
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, default_value = "info")]
+    log_level: String,
+
+    #[arg(short, long, default_value = "default.vcl")]
+    vcl: String,
+
+    #[arg(short, long, default_value = "./template/vcl.hbs")]
+    template: String,
+
+    #[arg(short, long, default_value = "varnish")]
+    class: String,
+}
+
 #[tokio::main]
 async fn main() {
-    std::env::set_var("RUST_LOG", "info");
+    let args = Args::parse();
+
+    std::env::set_var("RUST_LOG", args.log_level);
+
     env_logger::init();
 
     let client = match Client::try_default().await {
@@ -35,11 +55,17 @@ async fn main() {
     };
 
     info!("connected to cluster: {}", cluster_name);
+    info!("begin wathing ingress of class: {}", args.class);
 
-    watch_ingresses(client).await;
+    watch_ingresses(client, &args.vcl, &args.template, &args.class).await;
 }
 
-async fn watch_ingresses(client: Client) {
+async fn watch_ingresses(
+    client: Client,
+    vcl_file: &str,
+    vcl_template: &str,
+    ingress_class_name: &str,
+) {
     let ings: Api<Ingress> = Api::all(client);
 
     let wc = watcher::Config::default();
@@ -55,7 +81,7 @@ async fn watch_ingresses(client: Client) {
             None => continue,
         };
 
-        if class_name != "varnish" {
+        if class_name != ingress_class_name {
             debug!("skipping ingress class {}", class_name);
             continue;
         }
@@ -97,10 +123,10 @@ async fn watch_ingresses(client: Client) {
             continue;
         }
 
-        let mut v = Vcl::new("default.vcl", "./template/vcl.hbs");
+        let mut v = Vcl::new(vcl_file, vcl_template);
 
         match update(&mut v, backends) {
-            None => info!("default.vcl file has just been updated"),
+            None => info!("{} file has just been updated", vcl_file),
             Some(e) => error!("{}", e),
         }
     }
