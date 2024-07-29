@@ -1,4 +1,4 @@
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 use futures::TryStreamExt;
 use k8s_openapi::api::networking::v1::Ingress;
@@ -61,27 +61,41 @@ async fn watch_ingresses(client: Client) {
         }
 
         let mut backends: Vec<Backend> = vec![];
-        n.spec.unwrap().rules.unwrap().iter().for_each(|x| {
-            x.http.clone().unwrap().paths.iter().for_each(|y| {
-                let backend = Backend::new(
-                    n.metadata.clone().name.unwrap(),
-                    x.host.clone().unwrap(),
-                    y.path.clone().unwrap(),
-                    y.backend
-                        .clone()
-                        .service
-                        .unwrap()
-                        .port
-                        .unwrap()
-                        .number
-                        .unwrap()
-                        .try_into()
-                        .unwrap(),
-                );
 
-                backends.push(backend);
-            })
-        });
+        if let Some(spec) = n.spec {
+            if let Some(rules) = spec.rules {
+                rules.iter().for_each(|x| {
+                    if let Some(http) = x.http.clone() {
+                        http.paths.iter().for_each(|y| {
+                            let backend = Backend::new(
+                                n.metadata.clone().name.unwrap(),
+                                x.host.clone().unwrap(),
+                                y.path.clone().unwrap(),
+                                y.backend
+                                    .clone()
+                                    .service
+                                    .unwrap()
+                                    .port
+                                    .unwrap()
+                                    .number
+                                    .unwrap()
+                                    .try_into()
+                                    .unwrap(),
+                            );
+
+                            debug!("adding backend {}", backend.name);
+                            backends.push(backend);
+                        })
+                    }
+                });
+            } else {
+                warn!("no rules found in the ingress manifest");
+                continue;
+            }
+        } else {
+            warn!("no spec found in the ingress manifest");
+            continue;
+        }
 
         let mut v = Vcl::new("default.vcl", "./template/vcl.hbs");
 
