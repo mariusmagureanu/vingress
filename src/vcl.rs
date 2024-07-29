@@ -20,6 +20,7 @@ pub struct Backend {
     pub name: String,
     pub host: String,
     pub path: String,
+    pub service: String,
     pub port: u16,
 }
 
@@ -47,11 +48,12 @@ impl<'a> Vcl<'a> {
 }
 
 impl Backend {
-    pub fn new(name: String, host: String, path: String, port: u16) -> Self {
+    pub fn new(name: String, host: String, path: String, service: String, port: u16) -> Self {
         Backend {
             name,
             host,
             path,
+            service,
             port,
         }
     }

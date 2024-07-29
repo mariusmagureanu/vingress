@@ -14,18 +14,21 @@ mod test {
             String::from("alpha"),
             String::from("alpha.foo.com"),
             "/".to_string(),
+            String::from("service1"),
             8081,
         );
         let b2 = Backend::new(
             String::from("beta"),
             String::from("beta.foo.com"),
             "/foo".to_string(),
+            String::from("service2"),
             8082,
         );
         let b3 = Backend::new(
             String::from("delta"),
             String::from("delta.foo.com"),
             "/bar".to_string(),
+            String::from("service3"),
             8083,
         );
 

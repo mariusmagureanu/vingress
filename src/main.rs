@@ -55,7 +55,7 @@ async fn main() {
     };
 
     info!("connected to cluster: {}", cluster_name);
-    info!("begin wathing ingress of class: {}", args.class);
+    info!("begin watching ingress of class: {}", args.class);
 
     watch_ingresses(client, &args.vcl, &args.template, &args.class).await;
 }
@@ -93,24 +93,18 @@ async fn watch_ingresses(
                 rules.iter().for_each(|x| {
                     if let Some(http) = x.http.clone() {
                         http.paths.iter().for_each(|y| {
-                            let backend = Backend::new(
-                                n.metadata.clone().name.unwrap(),
-                                x.host.clone().unwrap(),
-                                y.path.clone().unwrap(),
-                                y.backend
-                                    .clone()
-                                    .service
-                                    .unwrap()
-                                    .port
-                                    .unwrap()
-                                    .number
-                                    .unwrap()
-                                    .try_into()
-                                    .unwrap(),
-                            );
+                            if let Some(ibs) = y.backend.clone().service {
+                                let h = x.host.clone().unwrap();
+                                let p = y.path.clone().unwrap();
+                                let bn =
+                                    format!("{}-{}", n.metadata.clone().name.unwrap(), ibs.name);
+                                let sp: u16 = ibs.port.unwrap().number.unwrap().try_into().unwrap();
 
-                            debug!("adding backend {}", backend.name);
-                            backends.push(backend);
+                                let backend = Backend::new(bn, h, p, ibs.name, sp);
+
+                                debug!("adding backend {}", backend.name);
+                                backends.push(backend);
+                            }
                         })
                     }
                 });
