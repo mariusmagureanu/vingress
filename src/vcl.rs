@@ -1,10 +1,12 @@
 use handlebars::{to_json, Handlebars};
+use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, process::Command};
 
 const BACKEND: &str = "backend";
 const VCL: &str = "vcl";
+const RELOAD_COMMAND: &str = "varnishreload";
 
 #[derive(Debug, PartialEq)]
 pub struct UpdateError(String);
@@ -29,6 +31,7 @@ pub struct Backend {
 pub struct Vcl<'a> {
     pub template: &'a str,
     pub file: &'a str,
+    pub work_folder: &'a str,
     pub content: String,
 }
 
@@ -39,10 +42,11 @@ impl UpdateError {
 }
 
 impl<'a> Vcl<'a> {
-    pub fn new(file: &'a str, template: &'a str) -> Self {
+    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str) -> Self {
         Vcl {
             template,
             file,
+            work_folder,
             content: String::new(),
         }
     }
@@ -85,15 +89,29 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 
     match hb.render(VCL, &vcl_data) {
         Ok(c) => vcl.content = c,
-        Err(e) => return Some(UpdateError::new(e.to_string())),
+        Err(e) => return Some(UpdateError::new(format!("render: {}", e.to_string()))),
     };
 
     match File::create(vcl.file) {
         Ok(mut f) => {
             let _ = f.write_all(vcl.content.as_bytes());
+            info!("{} has been updated", vcl.file);
         }
-        Err(e) => return Some(UpdateError(e.to_string())),
+        Err(e) => return Some(UpdateError(format!("vcl write: {}", e.to_string()))),
     };
+
+    None
+}
+
+pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
+    match Command::new(RELOAD_COMMAND)
+        .arg("-n")
+        .arg(vcl.work_folder)
+        .output()
+    {
+        Ok(_) => info!("{} reloaded succesfully", vcl.file),
+        Err(e) => return Some(UpdateError(format!("vcl reload: {}", e.to_string()))),
+    }
 
     None
 }

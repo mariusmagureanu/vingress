@@ -9,7 +9,7 @@ use kube::{
 };
 use std::pin::pin;
 use std::process;
-use vcl::{update, Backend, Vcl};
+use vcl::{reload, update, Backend, Vcl};
 
 mod vcl;
 mod vcl_test;
@@ -20,7 +20,7 @@ struct Args {
     #[arg(short, long, default_value = "info")]
     log_level: String,
 
-    #[arg(short, long, default_value = "default.vcl")]
+    #[arg(short, long, default_value = "/etc/varnish/default.vcl")]
     vcl: String,
 
     #[arg(short, long, default_value = "./template/vcl.hbs")]
@@ -28,6 +28,9 @@ struct Args {
 
     #[arg(short, long, default_value = "varnish")]
     class: String,
+
+    #[arg(short, long, default_value = "/etc/varnish/work")]
+    working_folder: String,
 }
 
 #[tokio::main]
@@ -48,13 +51,21 @@ async fn main() {
 
     info!("begin watching ingress of class: {}", args.class);
 
-    watch_ingresses(client, &args.vcl, &args.template, &args.class).await;
+    watch_ingresses(
+        client,
+        &args.vcl,
+        &args.template,
+        &args.working_folder,
+        &args.class,
+    )
+    .await;
 }
 
 async fn watch_ingresses(
     client: Client,
     vcl_file: &str,
     vcl_template: &str,
+    working_folder: &str,
     ingress_class_name: &str,
 ) {
     let ings: Api<Ingress> = Api::all(client);
@@ -109,10 +120,15 @@ async fn watch_ingresses(
             continue;
         }
 
-        let mut v = Vcl::new(vcl_file, vcl_template);
+        let mut v = Vcl::new(vcl_file, vcl_template, working_folder);
 
         match update(&mut v, backends) {
-            None => info!("{} file has just been updated", vcl_file),
+            None => {}
+            Some(e) => error!("{}", e),
+        }
+
+        match reload(&v) {
+            None => {}
             Some(e) => error!("{}", e),
         }
     }

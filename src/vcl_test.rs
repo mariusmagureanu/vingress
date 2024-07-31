@@ -6,7 +6,7 @@ mod test {
 
     #[test]
     fn test_vcl_load() {
-        let mut v = Vcl::new("default.vcl", "./template/vcl.hbs");
+        let mut v = Vcl::new("default.vcl", "./template/vcl.hbs", ".");
 
         let mut backends: Vec<Backend> = vec![];
 
