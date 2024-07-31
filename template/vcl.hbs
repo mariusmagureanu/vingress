@@ -5,7 +5,7 @@ import std;
 
 {{#each backend as |b| }}
 backend {{ b.name }} {
-  .host = "{{ b.service }}";
+  .host = "{{ b.service }}.{{ b.namespace }}.svc.cluster.local";
   .port = "{{ b.port }}";
 }
   
@@ -14,7 +14,7 @@ backend {{ b.name }} {
 sub vcl_recv {
 {{#each backend as |b| }}
  if (req.http.host == "{{ b.host }}" && req.http.url == "{{ b.path }}") {
-        set req.backend_hint = {{ b.service }};
+        set req.backend_hint = {{ b.name }};
     }
 {{/each}}
 }

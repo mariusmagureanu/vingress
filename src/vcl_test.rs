@@ -11,6 +11,7 @@ mod test {
         let mut backends: Vec<Backend> = vec![];
 
         let b1 = Backend::new(
+            String::from("foo"),
             String::from("alpha"),
             String::from("alpha.foo.com"),
             "/".to_string(),
@@ -18,6 +19,7 @@ mod test {
             8081,
         );
         let b2 = Backend::new(
+            String::from("foo"),
             String::from("beta"),
             String::from("beta.foo.com"),
             "/foo".to_string(),
@@ -25,6 +27,7 @@ mod test {
             8082,
         );
         let b3 = Backend::new(
+            String::from("foo"),
             String::from("delta"),
             String::from("delta.foo.com"),
             "/bar".to_string(),

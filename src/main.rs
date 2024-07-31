@@ -41,20 +41,11 @@ async fn main() {
     let client = match Client::try_default().await {
         Ok(c) => c,
         Err(e) => {
-            error!("{}", e);
+            error!("could not init k8s client: {}", e);
             process::exit(1);
         }
     };
 
-    let cluster_name = match get_cluster_name_from_context() {
-        Ok(cn) => cn,
-        Err(e) => {
-            error!("{}", e);
-            process::exit(1);
-        }
-    };
-
-    info!("connected to cluster: {}", cluster_name);
     info!("begin watching ingress of class: {}", args.class);
 
     watch_ingresses(client, &args.vcl, &args.template, &args.class).await;
@@ -99,8 +90,9 @@ async fn watch_ingresses(
                                 let bn =
                                     format!("{}-{}", n.metadata.clone().name.unwrap(), ibs.name);
                                 let sp: u16 = ibs.port.unwrap().number.unwrap().try_into().unwrap();
+                                let ns = n.metadata.clone().namespace.unwrap();
 
-                                let backend = Backend::new(bn, h, p, ibs.name, sp);
+                                let backend = Backend::new(ns, bn, h, p, ibs.name, sp);
 
                                 debug!("adding backend {}", backend.name);
                                 backends.push(backend);
@@ -123,17 +115,5 @@ async fn watch_ingresses(
             None => info!("{} file has just been updated", vcl_file),
             Some(e) => error!("{}", e),
         }
-    }
-}
-
-fn get_cluster_name_from_context() -> Result<String, String> {
-    let kube_config = match kube::config::Kubeconfig::read() {
-        Ok(kc) => kc,
-        Err(e) => return Err(e.to_string()),
-    };
-
-    match kube_config.current_context {
-        Some(kcc) => Ok(kcc),
-        None => Err("could not retrieve a current k8s context".to_string()),
     }
 }
