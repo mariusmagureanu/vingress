@@ -3,6 +3,8 @@ vcl 4.1;
 import directors;
 import std;
 
+backend default none;
+
 {{#each backend as |b| }}
 backend {{ b.name }} {
   .host = "{{ b.service }}.{{ b.namespace }}.svc.cluster.local";
@@ -13,7 +15,7 @@ backend {{ b.name }} {
 
 sub vcl_recv {
 {{#each backend as |b| }}
- if (req.http.host == "{{ b.host }}" && req.http.url == "{{ b.path }}") {
+ if (req.http.host == "{{ b.host }}" && req.url ~ "{{ b.path }}") {
         set req.backend_hint = {{ b.name }};
     }
 {{/each}}
