@@ -173,7 +173,10 @@ fn reconcile(vcl_file: &str, vcl_template: &str, working_folder: &str, backends:
 
     match update(&mut v, backends) {
         None => {}
-        Some(e) => error!("{}", e),
+        Some(e) => {
+            error!("{}", e);
+            return;
+        }
     }
 
     match reload(&v) {

@@ -93,7 +93,13 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
             let _ = f.write_all(vcl.content.as_bytes());
             info!("vcl file [{}] has been reconciled", vcl.file);
         }
-        Err(e) => return Some(UpdateError(format!("vcl write: {}", e.to_string()))),
+        Err(e) => {
+            return Some(UpdateError(format!(
+                "vcl [{}] write error: {}",
+                vcl.file,
+                e.to_string()
+            )))
+        }
     };
 
     None
@@ -106,7 +112,13 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
         .output()
     {
         Ok(_) => info!("vcl [{}] reloaded succesfully", vcl.file),
-        Err(e) => return Some(UpdateError(format!("vcl reload: {}", e.to_string()))),
+        Err(e) => {
+            return Some(UpdateError(format!(
+                "vcl [{}] reload error: {}",
+                vcl.file,
+                e.to_string()
+            )))
+        }
     }
 
     None
