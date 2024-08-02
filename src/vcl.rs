@@ -73,10 +73,6 @@ impl Backend {
 }
 
 pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
-    if backends.is_empty() {
-        return Some(UpdateError("backends cannot be empty".to_string()));
-    }
-
     let mut hb = Handlebars::new();
 
     if let Err(e) = hb.register_template_file(VCL, vcl.template) {
@@ -95,7 +91,7 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     match File::create(vcl.file) {
         Ok(mut f) => {
             let _ = f.write_all(vcl.content.as_bytes());
-            info!("{} has been updated", vcl.file);
+            info!("vcl file [{}] has been reconciled", vcl.file);
         }
         Err(e) => return Some(UpdateError(format!("vcl write: {}", e.to_string()))),
     };
@@ -109,7 +105,7 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
         .arg(vcl.work_folder)
         .output()
     {
-        Ok(_) => info!("{} reloaded succesfully", vcl.file),
+        Ok(_) => info!("vcl [{}] reloaded succesfully", vcl.file),
         Err(e) => return Some(UpdateError(format!("vcl reload: {}", e.to_string()))),
     }
 

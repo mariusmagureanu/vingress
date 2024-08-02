@@ -1,13 +1,13 @@
 use log::{debug, error, info, warn};
 
 use clap::Parser;
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::networking::v1::Ingress;
 use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
 };
-use std::pin::pin;
+use std::collections::HashMap;
 use std::process;
 use vcl::{reload, update, Backend, Vcl};
 
@@ -49,7 +49,7 @@ async fn main() {
         }
     };
 
-    info!("begin watching ingress of class: {}", args.class);
+    info!("begin watching ingresses of class: [{}]", args.class);
 
     watch_ingresses(
         client,
@@ -68,68 +68,160 @@ async fn watch_ingresses(
     working_folder: &str,
     ingress_class_name: &str,
 ) {
-    let ings: Api<Ingress> = Api::all(client);
+    let ingress_api: Api<Ingress> = Api::all(client);
 
-    let wc = watcher::Config::default();
-    let observer = watcher(ings, wc).default_backoff().applied_objects();
+    let mut observer = watcher(ingress_api, watcher::Config::default())
+        .default_backoff()
+        .boxed();
 
-    let mut obs = pin!(observer);
+    let mut backends: HashMap<String, Vec<Backend>> = HashMap::new();
 
-    while let Some(n) = obs.try_next().await.unwrap() {
-        let ing_class = n.spec.clone().unwrap().ingress_class_name;
+    while let Some(ev) = observer.try_next().await.unwrap() {
+        match ev {
+            watcher::Event::Apply(n) => {
+                let ing_name = n.metadata.clone().name.unwrap();
 
-        let class_name = match ing_class {
-            Some(ic) => ic.to_lowercase(),
-            None => continue,
-        };
+                if !is_varnish_class(n.clone(), ingress_class_name) {
+                    info!(
+                        "skipping ingress [{}], it does not have the varnish class",
+                        ing_name
+                    );
+                    continue;
+                }
 
-        if class_name != ingress_class_name {
-            debug!("skipping ingress class {}", class_name);
-            continue;
-        }
-
-        let mut backends: Vec<Backend> = vec![];
-
-        if let Some(spec) = n.spec {
-            if let Some(rules) = spec.rules {
-                rules.iter().for_each(|x| {
-                    if let Some(http) = x.http.clone() {
-                        http.paths.iter().for_each(|y| {
-                            if let Some(ibs) = y.backend.clone().service {
-                                let h = x.host.clone().unwrap();
-                                let p = y.path.clone().unwrap();
-                                let bn =
-                                    format!("{}-{}", n.metadata.clone().name.unwrap(), ibs.name);
-                                let sp: u16 = ibs.port.unwrap().number.unwrap().try_into().unwrap();
-                                let ns = n.metadata.clone().namespace.unwrap();
-
-                                let backend = Backend::new(ns, bn, h, p, ibs.name, sp);
-
-                                debug!("adding backend {}", backend.name);
-                                backends.push(backend);
-                            }
-                        })
+                info!("parsing ingress [{}]", ing_name);
+                let bbs = match parse_ingress_spec(n) {
+                    Ok(bbs) => bbs,
+                    Err(e) => {
+                        error!("{}", e.to_string());
+                        continue;
                     }
-                });
-            } else {
-                warn!("no rules found in the ingress manifest");
-                continue;
+                };
+
+                backends.insert(ing_name, bbs);
+
+                reconcile(
+                    vcl_file,
+                    vcl_template,
+                    working_folder,
+                    backends.values().flat_map(|x| x.clone()).collect(),
+                );
             }
-        } else {
-            warn!("no spec found in the ingress manifest");
-            continue;
-        }
+            watcher::Event::Delete(obj) => {
+                let ing_name = obj.metadata.clone().name.unwrap();
 
-        let mut v = Vcl::new(vcl_file, vcl_template, working_folder);
+                if !is_varnish_class(obj.clone(), ingress_class_name) {
+                    info!(
+                        "skipping ingress [{}], it does not have the varnish class",
+                        ing_name
+                    );
+                    continue;
+                }
 
-        match update(&mut v, backends) {
-            None => {}
-            Some(e) => error!("{}", e),
-        }
+                warn!("deleting ingress [{}]", ing_name);
+                backends.remove(&ing_name);
 
-        match reload(&v) {
-            None => {}
-            Some(e) => error!("{}", e),
+                reconcile(
+                    vcl_file,
+                    vcl_template,
+                    working_folder,
+                    backends.values().flat_map(|x| x.clone()).collect(),
+                );
+            }
+            watcher::Event::Init => {
+                debug!("init event");
+            }
+            watcher::Event::InitApply(n) => {
+                let ing_name = n.metadata.clone().name.unwrap();
+
+                if !is_varnish_class(n.clone(), ingress_class_name) {
+                    info!(
+                        "skipping ingress [{}], it does not have the varnish class",
+                        ing_name
+                    );
+                    continue;
+                }
+
+                info!("[init-apply event] parsing ingress [{}]", ing_name);
+
+                let bbs = match parse_ingress_spec(n) {
+                    Ok(bbs) => bbs,
+                    Err(e) => {
+                        error!("{}", e.to_string());
+                        continue;
+                    }
+                };
+
+                backends.insert(ing_name, bbs);
+            }
+            watcher::Event::InitDone => {
+                info!("done parsing ingresses, will now vcl reconcile");
+
+                reconcile(
+                    vcl_file,
+                    vcl_template,
+                    working_folder,
+                    backends.values().flat_map(|x| x.clone()).collect(),
+                );
+            }
         }
     }
+}
+
+fn reconcile(vcl_file: &str, vcl_template: &str, working_folder: &str, backends: Vec<Backend>) {
+    let mut v = Vcl::new(vcl_file, vcl_template, working_folder);
+
+    match update(&mut v, backends) {
+        None => {}
+        Some(e) => error!("{}", e),
+    }
+
+    match reload(&v) {
+        None => {}
+        Some(e) => error!("{}", e),
+    }
+}
+
+fn is_varnish_class(ing: Ingress, ingress_class_name: &str) -> bool {
+    let ing_class = ing.spec.clone().unwrap().ingress_class_name;
+
+    let class_name = match ing_class {
+        Some(ic) => ic.to_lowercase(),
+        None => return false,
+    };
+
+    class_name == ingress_class_name
+}
+
+fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
+    let mut backends: Vec<Backend> = vec![];
+
+    if let Some(spec) = ing.spec {
+        if let Some(rules) = spec.rules {
+            rules.iter().for_each(|x| {
+                if let Some(http) = x.http.clone() {
+                    http.paths.iter().for_each(|y| {
+                        if let Some(ibs) = y.backend.clone().service {
+                            let h = x.host.clone().unwrap();
+                            let p = y.path.clone().unwrap();
+                            let bn = format!("{}-{}", ing.metadata.clone().name.unwrap(), ibs.name);
+                            let sp: u16 = ibs.port.unwrap().number.unwrap().try_into().unwrap();
+                            let ns = ing.metadata.clone().namespace.unwrap();
+
+                            let backend = Backend::new(ns, bn, h, p, ibs.name, sp);
+
+                            info!(
+                                "found backend [{}] from ingress [{}]",
+                                backend.name,
+                                ing.metadata.clone().name.unwrap()
+                            );
+                            backends.push(backend);
+                        }
+                    })
+                }
+            });
+        }
+    }
+
+    Ok(backends)
 }
