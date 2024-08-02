@@ -2,7 +2,7 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::{fs::File, io::Write, process::Command};
+use std::{fs::File, io::{Read, Write}, process::Command};
 
 const BACKEND: &str = "backend";
 const VCL: &str = "vcl";
@@ -91,7 +91,7 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     match File::create(vcl.file) {
         Ok(mut f) => {
             let _ = f.write_all(vcl.content.as_bytes());
-            info!("vcl file [{}] has been reconciled", vcl.file);
+            info!("vcl file [{}] has been updated", vcl.file);
         }
         Err(e) => {
             return Some(UpdateError(format!(
@@ -111,7 +111,16 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
         .arg(vcl.work_folder)
         .output()
     {
-        Ok(_) => info!("vcl [{}] reloaded succesfully", vcl.file),
+        Ok(cs) => {
+            if cs.status.success() {
+                info!("vcl [{}] reloaded succesfully", vcl.file)
+            } else {
+                return Some(UpdateError(format!(
+                    "vcl [{}] reload error: {:?}",
+                    vcl.file, cs.stdout.bytes()
+                )));
+            }
+        }
         Err(e) => {
             return Some(UpdateError(format!(
                 "vcl [{}] reload error: {}",
