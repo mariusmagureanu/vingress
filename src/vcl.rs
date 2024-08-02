@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_json::value::Map;
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::Write,
     process::Command,
 };
 
@@ -127,33 +127,25 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     }
 
     let mut vcl_data = Map::new();
-
     vcl_data.insert(BACKEND.to_string(), to_json(backends));
 
-    match hb.render(VCL, &vcl_data) {
-        Ok(c) => vcl.content = c,
+    let rendered_content = match hb.render(VCL, &vcl_data) {
+        Ok(content) => content,
         Err(e) => {
-            return Some(UpdateError::new(format!(
-                "Template render error: {}",
-                e
-            )))
+            return Some(UpdateError(format!("Template render error: {}", e)));
         }
     };
 
-    match File::create(vcl.file) {
-        Ok(mut f) => {
-            let _ = f.write_all(vcl.content.as_bytes());
-            info!("Vcl file [{}] has been updated", vcl.file);
-        }
-        Err(e) => {
-            return Some(UpdateError(format!(
-                "Vcl [{}] write error: {}",
-                vcl.file,
-                e
-            )))
-        }
-    };
+    vcl.content = rendered_content;
 
+    if let Err(e) = File::create(vcl.file).and_then(|mut f| f.write_all(vcl.content.as_bytes())) {
+        return Some(UpdateError(format!(
+            "Vcl [{}] file write error: {}",
+            vcl.file, e
+        )));
+    }
+
+    info!("Vcl file [{}] has been updated", vcl.file);
     None
 }
 
@@ -167,30 +159,28 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 /// See the Dockerfile and check what working folder
 /// is being provided to Varnish
 pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
-    match Command::new(RELOAD_COMMAND)
+    let output = match Command::new(RELOAD_COMMAND)
         .arg("-n")
         .arg(vcl.work_folder)
         .output()
     {
-        Ok(cs) => {
-            if cs.status.success() {
-                info!("Vcl [{}] reloaded succesfully", vcl.file)
-            } else {
-                return Some(UpdateError(format!(
-                    "Vcl [{}] reload error: {:?}",
-                    vcl.file,
-                    cs.stdout.bytes()
-                )));
-            }
-        }
+        Ok(output) => output,
         Err(e) => {
             return Some(UpdateError(format!(
-                "Vcl [{}] reload error: {}",
-                vcl.file,
-                e
-            )))
+                "Vcl [{}] reload command error: {}",
+                vcl.file, e
+            )));
         }
-    }
+    };
 
-    None
+    if output.status.success() {
+        info!("Vcl [{}] reloaded successfully", vcl.file);
+        None
+    } else {
+        Some(UpdateError(format!(
+            "Vcl [{}] reload error: {}",
+            vcl.file,
+            String::from_utf8_lossy(&output.stdout)
+        )))
+    }
 }
