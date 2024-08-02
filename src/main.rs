@@ -85,7 +85,7 @@ async fn watch_ingresses(
             watcher::Event::Apply(n) => {
                 let ing_name = n.metadata.clone().name.unwrap();
 
-                if !is_varnish_class(n.clone(), ingress_class_name) {
+                if !is_varnish_class(&n, ingress_class_name) {
                     info!(
                         "skipping ingress [{}], it does not have the varnish class",
                         ing_name
@@ -114,7 +114,7 @@ async fn watch_ingresses(
             watcher::Event::Delete(obj) => {
                 let ing_name = obj.metadata.clone().name.unwrap();
 
-                if !is_varnish_class(obj.clone(), ingress_class_name) {
+                if !is_varnish_class(&obj, ingress_class_name) {
                     info!(
                         "skipping ingress [{}], it does not have the varnish class",
                         ing_name
@@ -138,7 +138,7 @@ async fn watch_ingresses(
             watcher::Event::InitApply(n) => {
                 let ing_name = n.metadata.clone().name.unwrap();
 
-                if !is_varnish_class(n.clone(), ingress_class_name) {
+                if !is_varnish_class(&n, ingress_class_name) {
                     info!(
                         "skipping ingress [{}], it does not have the varnish class",
                         ing_name
@@ -175,29 +175,23 @@ async fn watch_ingresses(
 fn reconcile(vcl_file: &str, vcl_template: &str, working_folder: &str, backends: Vec<Backend>) {
     let mut v = Vcl::new(vcl_file, vcl_template, working_folder);
 
-    match update(&mut v, backends) {
-        None => {}
-        Some(e) => {
-            error!("{}", e);
-            return;
-        }
+    if let Some(e) = update(&mut v, backends) {
+        error!("{}", e);
+        return;
     }
 
-    match reload(&v) {
-        None => {}
-        Some(e) => error!("{}", e),
+    if let Some(e) = reload(&v) {
+        error!("{}", e);
     }
 }
 
-fn is_varnish_class(ing: Ingress, ingress_class_name: &str) -> bool {
-    let ing_class = ing.spec.clone().unwrap().ingress_class_name;
-
-    let class_name = match ing_class {
-        Some(ic) => ic.to_lowercase(),
-        None => return false,
-    };
-
-    class_name == ingress_class_name
+fn is_varnish_class(ing: &Ingress, ingress_class_name: &str) -> bool {
+    if let Some(spec) = &ing.spec {
+        if let Some(class_name) = &spec.ingress_class_name {
+            return class_name.eq_ignore_ascii_case(ingress_class_name);
+        }
+    }
+    false
 }
 
 fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
