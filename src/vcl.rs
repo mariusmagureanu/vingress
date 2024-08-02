@@ -132,19 +132,24 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 
     match hb.render(VCL, &vcl_data) {
         Ok(c) => vcl.content = c,
-        Err(e) => return Some(UpdateError::new(format!("render: {}", e.to_string()))),
+        Err(e) => {
+            return Some(UpdateError::new(format!(
+                "Template render error: {}",
+                e
+            )))
+        }
     };
 
     match File::create(vcl.file) {
         Ok(mut f) => {
             let _ = f.write_all(vcl.content.as_bytes());
-            info!("vcl file [{}] has been updated", vcl.file);
+            info!("Vcl file [{}] has been updated", vcl.file);
         }
         Err(e) => {
             return Some(UpdateError(format!(
-                "vcl [{}] write error: {}",
+                "Vcl [{}] write error: {}",
                 vcl.file,
-                e.to_string()
+                e
             )))
         }
     };
@@ -169,10 +174,10 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
     {
         Ok(cs) => {
             if cs.status.success() {
-                info!("vcl [{}] reloaded succesfully", vcl.file)
+                info!("Vcl [{}] reloaded succesfully", vcl.file)
             } else {
                 return Some(UpdateError(format!(
-                    "vcl [{}] reload error: {:?}",
+                    "Vcl [{}] reload error: {:?}",
                     vcl.file,
                     cs.stdout.bytes()
                 )));
@@ -180,9 +185,9 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
         }
         Err(e) => {
             return Some(UpdateError(format!(
-                "vcl [{}] reload error: {}",
+                "Vcl [{}] reload error: {}",
                 vcl.file,
-                e.to_string()
+                e
             )))
         }
     }

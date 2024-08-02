@@ -44,12 +44,12 @@ async fn main() {
     let client = match Client::try_default().await {
         Ok(c) => c,
         Err(e) => {
-            error!("could not init k8s client: {}", e);
+            error!("Could not init k8s client: {}", e);
             process::exit(1);
         }
     };
 
-    info!("begin watching ingresses of class: [{}]", args.class);
+    info!("Started watching ingresses of class: [{}]", args.class);
 
     watch_ingresses(
         client,
@@ -82,91 +82,25 @@ async fn watch_ingresses(
 
     while let Some(ev) = observer.try_next().await.unwrap() {
         match ev {
-            watcher::Event::Apply(n) => {
-                let ing_name = n.metadata.clone().name.unwrap();
-
-                if !is_varnish_class(&n, ingress_class_name) {
-                    info!(
-                        "skipping ingress [{}], it does not have the varnish class",
-                        ing_name
-                    );
-                    continue;
-                }
-
-                info!("parsing ingress [{}]", ing_name);
-                let bbs = match parse_ingress_spec(n) {
-                    Ok(bbs) => bbs,
-                    Err(e) => {
-                        error!("{}", e.to_string());
-                        continue;
-                    }
-                };
-
-                backends.insert(ing_name, bbs);
-
-                reconcile(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    backends.values().flat_map(|x| x.clone()).collect(),
-                );
+            watcher::Event::Apply(ingress) => {
+                handle_ingress_event(&ingress, ingress_class_name, &mut backends);
+                reconcile_backends(vcl_file, vcl_template, working_folder, &backends);
             }
-            watcher::Event::Delete(obj) => {
-                let ing_name = obj.metadata.clone().name.unwrap();
-
-                if !is_varnish_class(&obj, ingress_class_name) {
-                    info!(
-                        "skipping ingress [{}], it does not have the varnish class",
-                        ing_name
-                    );
-                    continue;
-                }
-
-                warn!("deleting ingress [{}]", ing_name);
-                backends.remove(&ing_name);
-
-                reconcile(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    backends.values().flat_map(|x| x.clone()).collect(),
-                );
+            watcher::Event::Delete(ingress) => {
+                handle_ingress_delete(&ingress, ingress_class_name, &mut backends);
+                reconcile_backends(vcl_file, vcl_template, working_folder, &backends);
             }
             watcher::Event::Init => {
-                debug!("init event");
+                debug!("Initialization event received");
             }
-            watcher::Event::InitApply(n) => {
-                let ing_name = n.metadata.clone().name.unwrap();
-
-                if !is_varnish_class(&n, ingress_class_name) {
-                    info!(
-                        "skipping ingress [{}], it does not have the varnish class",
-                        ing_name
-                    );
-                    continue;
-                }
-
-                info!("[init-apply event] parsing ingress [{}]", ing_name);
-
-                let bbs = match parse_ingress_spec(n) {
-                    Ok(bbs) => bbs,
-                    Err(e) => {
-                        error!("{}", e.to_string());
-                        continue;
-                    }
-                };
-
-                backends.insert(ing_name, bbs);
+            watcher::Event::InitApply(ingress) => {
+                handle_ingress_event(&ingress, ingress_class_name, &mut backends);
             }
             watcher::Event::InitDone => {
-                info!("done parsing ingresses, will now vcl reconcile");
-
-                reconcile(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    backends.values().flat_map(|x| x.clone()).collect(),
+                info!(
+                    "Finished processing initial ingress resources. Starting VCL reconciliation."
                 );
+                reconcile_backends(vcl_file, vcl_template, working_folder, &backends);
             }
         }
     }
@@ -235,7 +169,7 @@ fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
                     );
 
                     info!(
-                        "found backend [{}] from ingress [{}]",
+                        "Found backend [{}] from ingress [{}]",
                         backend_name,
                         ing.metadata.name.as_deref().unwrap_or("")
                     );
@@ -246,4 +180,63 @@ fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
     }
 
     Ok(backends)
+}
+
+fn handle_ingress_event(
+    ingress: &Ingress,
+    ingress_class_name: &str,
+    backends: &mut HashMap<String, Vec<Backend>>,
+) {
+    let ing_name = ingress.metadata.name.as_deref().unwrap_or_default();
+
+    if !is_varnish_class(ingress, ingress_class_name) {
+        info!(
+            "Skipping ingress [{}], it does not have the Varnish class.",
+            ing_name
+        );
+        return;
+    }
+
+    info!("Parsing ingress [{}]", ing_name);
+    match parse_ingress_spec(ingress.clone()) {
+        Ok(bbs) => {
+            backends.insert(ing_name.to_string(), bbs);
+        }
+        Err(e) => {
+            error!("Error parsing ingress [{}]: {}", ing_name, e);
+        }
+    }
+}
+
+fn handle_ingress_delete(
+    ingress: &Ingress,
+    ingress_class_name: &str,
+    backends: &mut HashMap<String, Vec<Backend>>,
+) {
+    let ing_name = ingress.metadata.name.as_deref().unwrap_or_default();
+
+    if !is_varnish_class(ingress, ingress_class_name) {
+        info!(
+            "Skipping ingress [{}], it does not have the Varnish class.",
+            ing_name
+        );
+        return;
+    }
+
+    warn!("Deleting ingress [{}]", ing_name);
+    backends.remove(ing_name);
+}
+
+fn reconcile_backends(
+    vcl_file: &str,
+    vcl_template: &str,
+    working_folder: &str,
+    backends: &HashMap<String, Vec<Backend>>,
+) {
+    reconcile(
+        vcl_file,
+        vcl_template,
+        working_folder,
+        backends.values().flatten().cloned().collect(),
+    );
 }
