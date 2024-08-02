@@ -70,9 +70,13 @@ async fn watch_ingresses(
 ) {
     let ingress_api: Api<Ingress> = Api::all(client);
 
-    let mut observer = watcher(ingress_api, watcher::Config::default())
-        .default_backoff()
-        .boxed();
+    let mut observer = watcher(
+        ingress_api,
+        watcher::Config::default()
+            .labels(format!("kubernetes.io/ingress={}", ingress_class_name).as_str()),
+    )
+    .default_backoff()
+    .boxed();
 
     let mut backends: HashMap<String, Vec<Backend>> = HashMap::new();
 
@@ -197,32 +201,53 @@ fn is_varnish_class(ing: Ingress, ingress_class_name: &str) -> bool {
 }
 
 fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
-    let mut backends: Vec<Backend> = vec![];
+    let mut backends = Vec::new();
 
-    if let Some(spec) = ing.spec {
-        if let Some(rules) = spec.rules {
-            rules.iter().for_each(|x| {
-                if let Some(http) = x.http.clone() {
-                    http.paths.iter().for_each(|y| {
-                        if let Some(ibs) = y.backend.clone().service {
-                            let h = x.host.clone().unwrap();
-                            let p = y.path.clone().unwrap();
-                            let bn = format!("{}-{}", ing.metadata.clone().name.unwrap(), ibs.name);
-                            let sp: u16 = ibs.port.unwrap().number.unwrap().try_into().unwrap();
-                            let ns = ing.metadata.clone().namespace.unwrap();
+    let spec = match ing.spec {
+        Some(spec) => spec,
+        None => return Ok(backends),
+    };
 
-                            let backend = Backend::new(ns, bn, h, p, ibs.name, sp);
+    if let Some(rules) = spec.rules {
+        for rule in rules {
+            let http = match &rule.http {
+                Some(http) => http,
+                None => continue,
+            };
 
-                            info!(
-                                "found backend [{}] from ingress [{}]",
-                                backend.name,
-                                ing.metadata.clone().name.unwrap()
-                            );
-                            backends.push(backend);
-                        }
-                    })
+            for path in &http.paths {
+                if let Some(backend_service) = &path.backend.service {
+                    let host = rule.host.as_deref().unwrap_or("");
+                    let path_str = path.path.as_deref().unwrap_or("");
+                    let backend_name = format!(
+                        "{}-{}",
+                        ing.metadata.name.as_deref().unwrap_or(""),
+                        backend_service.name
+                    );
+                    let port = backend_service
+                        .port
+                        .as_ref()
+                        .and_then(|p| p.number)
+                        .ok_or("Port number is missing")?;
+                    let namespace = ing.metadata.namespace.as_deref().unwrap_or("");
+
+                    let backend = Backend::new(
+                        namespace.to_string(),
+                        backend_name.clone(),
+                        host.to_string(),
+                        path_str.to_string(),
+                        backend_service.name.clone(),
+                        port as u16,
+                    );
+
+                    info!(
+                        "found backend [{}] from ingress [{}]",
+                        backend_name,
+                        ing.metadata.name.as_deref().unwrap_or("")
+                    );
+                    backends.push(backend);
                 }
-            });
+            }
         }
     }
 

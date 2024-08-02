@@ -2,7 +2,11 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::{fs::File, io::{Read, Write}, process::Command};
+use std::{
+    fs::File,
+    io::{Read, Write},
+    process::Command,
+};
 
 const BACKEND: &str = "backend";
 const VCL: &str = "vcl";
@@ -29,7 +33,7 @@ impl std::fmt::Display for UpdateError {
 /// See vcl.hbs template file in this repository.
 #[derive(Debug, Serialize, Clone)]
 pub struct Backend {
-    /// The namespace where the Ingress 
+    /// The namespace where the Ingress
     /// object is located.
     pub namespace: String,
 
@@ -61,7 +65,7 @@ pub struct Backend {
     /// just so Varnish can resolve its IP.
     pub service: String,
 
-    /// Kubernetes service port used 
+    /// Kubernetes service port used
     /// as <port> in the Varnish backend definition.
     pub port: u16,
 }
@@ -148,7 +152,7 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     None
 }
 
-/// 
+///
 /// Triggers Varnish to reload its vcl configuration.
 ///
 /// E.g:
@@ -169,7 +173,8 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
             } else {
                 return Some(UpdateError(format!(
                     "vcl [{}] reload error: {:?}",
-                    vcl.file, cs.stdout.bytes()
+                    vcl.file,
+                    cs.stdout.bytes()
                 )));
             }
         }
