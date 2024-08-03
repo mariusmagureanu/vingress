@@ -2,11 +2,7 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::{
-    fs::File,
-    io::Write,
-    process::Command,
-};
+use std::{fs::File, io::Write, process::Command};
 
 const BACKEND: &str = "backend";
 const VCL: &str = "vcl";
