@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varnish-ingress-controller
+  labels:
+    app: varnish-ingress-controller
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: varnish-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: varnish-ingress-controller
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      initContainers:
+        - name: {{ .Values.initContainers.name }}
+          image: alpine
+          command: ["/bin/sh", "-c"]
+          args: ["echo \"vcl 4.1; backend default none;\" > /etc/varnish/default.vcl"]
+          volumeMounts:
+            - mountPath: /etc/varnish
+              name: varnish-vcl
+      containers:
+        - name: varnish
+          image: "{{ .Values.image.varnish.repository }}:{{ .Values.image.varnish.tag }}"
+          args:
+            {{- range .Values.varnish.args }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: VARNISH_HTTP_PORT
+              value: "{{ .Values.varnish.httpPort }}"
+            - name: VARNISH_SIZE
+              value: "{{ .Values.varnish.size }}"
+          resources:
+            requests:
+              memory: "{{ .Values.resources.requests.memory }}"
+              cpu: "{{ .Values.resources.requests.cpu }}"
+            limits:
+              memory: "{{ .Values.resources.limits.memory }}"
+              cpu: "{{ .Values.resources.limits.cpu }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.varnish.httpPort }}
+          volumeMounts:
+            - name: varnish-vcl
+              mountPath: /etc/varnish
+            - name: varnish-bins
+              mountPath: /shared-bin
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - "cp /usr/sbin/varnishreload /shared-bin/varnishreload"
+        - name: varnish-controller
+          image: "{{ .Values.image.controller.repository }}:{{ .Values.image.controller.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PATH
+              value: "/shared-bin:/usr/bin:/usr/sbin"
+          volumeMounts:
+            - name: varnish-vcl
+              mountPath: /etc/varnish
+            - name: varnish-bins
+              mountPath: /shared-bin
+      volumes:
+        - name: varnish-vcl
+          emptyDir: {}
+        - name: varnish-bins
+          emptyDir: {}
+

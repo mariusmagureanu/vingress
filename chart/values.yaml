@@ -1,0 +1,30 @@
+replicaCount: 1
+image:
+  varnish:
+    repository: varnish
+    tag: "7.5"
+  controller:
+    repository: mariusm/vingress
+    tag: "0.1.0"
+  pullPolicy: Always
+serviceAccount:
+  name: varnish-controller
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "2048Mi"
+    cpu: "150m"
+varnish:
+  httpPort: 6081
+  size: "2G"
+  args:
+    - "-f"
+    - "/etc/varnish/default.vcl"
+    - "-n"
+    - "/etc/varnish/work"
+    - "-p"
+    - "default_keep=300"
+initContainers:
+  name: varnish-init
