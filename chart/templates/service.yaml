@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: varnish-ingress-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: varnish-ingress-controller
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: varnish-ingress-controller
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+

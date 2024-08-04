@@ -5,7 +5,7 @@ If you don't have a test cluster at hand, you're welcome to use [kind](https://k
 Install KinD:
 
 ```sh
-$ $ https://kind.sigs.k8s.io/
+$ go install sigs.k8s.io/kind@v0.23.0 
 ```
 
 Create the cluster:
