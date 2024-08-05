@@ -121,7 +121,7 @@ fn handle_ingress_event(
     ingress_class_name: &str,
     backends: &mut HashMap<String, Vec<Backend>>,
 ) {
-    let ing_name = ingress.metadata.name.as_deref().unwrap_or_default();
+    let ing_name = ingress.metadata.name.as_deref().unwrap_or("default");
 
     if !is_varnish_class(ingress, ingress_class_name) {
         info!(
