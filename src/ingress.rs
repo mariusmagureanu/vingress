@@ -86,10 +86,12 @@ fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
 
             for path in &http.paths {
                 if let Some(backend_service) = &path.backend.service {
+                    let namespace = ing.metadata.namespace.as_deref().unwrap_or("default");
                     let host = rule.host.as_deref().unwrap_or("");
                     let path_str = path.path.as_deref().unwrap_or("/");
                     let backend_name = format!(
-                        "{}-{}",
+                        "{}-{}-{}",
+                        namespace,
                         ing.metadata.name.as_deref().unwrap_or("default"),
                         backend_service.name
                     );
@@ -98,7 +100,6 @@ fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
                         .as_ref()
                         .and_then(|p| p.number)
                         .ok_or("Port number is missing")?;
-                    let namespace = ing.metadata.namespace.as_deref().unwrap_or("default");
 
                     let backend = Backend::new(
                         namespace.to_string(),

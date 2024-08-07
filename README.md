@@ -71,12 +71,12 @@ import std;
 
 backend default none;
 
-backend media-media-v1-svc {
+backend demo-media-media-v1-svc {
   .host = "media-v1-svc.demo.svc.cluster.local";
   .port = "80";
 }
   
-backend media-media-v2-svc {
+backend demo-media-media-v2-svc {
   .host = "media-v2-svc.demo.svc.cluster.local";
   .port = "80";
 }
@@ -84,10 +84,10 @@ backend media-media-v2-svc {
 
 sub vcl_recv {
  if (req.http.host == "foo.bar.com" && req.url ~ "/foo") {
-        set req.backend_hint = media-media-v1-svc;
+        set req.backend_hint = demo-media-media-v1-svc;
     }
  if (req.http.host == "qux.bar.com" && req.url ~ "/qux") {
-        set req.backend_hint = media-media-v2-svc;
+        set req.backend_hint = demo-media-media-v2-svc;
     }
 }
 ```
