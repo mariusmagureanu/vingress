@@ -16,6 +16,7 @@ mod test {
             String::from("alpha.foo.com"),
             "/".to_string(),
             String::from("service1"),
+            String::from("Prefix"),
             8081,
         );
         let b2 = Backend::new(
@@ -24,6 +25,7 @@ mod test {
             String::from("beta.foo.com"),
             "/foo".to_string(),
             String::from("service2"),
+            String::from("Exact"),
             8082,
         );
         let b3 = Backend::new(
@@ -32,6 +34,7 @@ mod test {
             String::from("delta.foo.com"),
             "/bar".to_string(),
             String::from("service3"),
+            String::from("ImplementationSpecific"),
             8083,
         );
 
