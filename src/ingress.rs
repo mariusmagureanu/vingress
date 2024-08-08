@@ -8,13 +8,6 @@ use kube::{
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 
-#[derive(Debug)]
-enum PathType {
-    ImplementationSpecific,
-    Exact,
-    Prefix,
-}
-
 pub async fn watch_ingresses(
     client: Client,
     vcl_file: &str,
@@ -107,6 +100,7 @@ fn parse_ingress_spec(ing: Ingress) -> Result<Vec<Backend>, String> {
                         host.to_string(),
                         path_str.to_string(),
                         backend_service.name.clone(),
+                        path.path_type.clone(),
                         port as u16,
                     );
 
@@ -186,23 +180,5 @@ fn reconcile_backends(
 
     if let Some(e) = reload(&v) {
         error!("{}", e);
-    }
-}
-
-impl From<&str> for PathType {
-    fn from(value: &str) -> Self {
-        match value {
-            "Prefix" => PathType::Prefix,
-            "Exact" => PathType::Exact,
-            "ImplementationSpecific" => PathType::ImplementationSpecific,
-            _ => {
-                warn!(
-                    "Unknown Ingress path_type {}, will default to using {:?}",
-                    value,
-                    PathType::Prefix
-                );
-                PathType::Prefix
-            }
-        }
     }
 }

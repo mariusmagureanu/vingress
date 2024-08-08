@@ -61,6 +61,8 @@ pub struct Backend {
     /// just so Varnish can resolve its IP.
     pub service: String,
 
+    pub path_type: String,
+
     /// Kubernetes service port used
     /// as <port> in the Varnish backend definition.
     pub port: u16,
@@ -98,6 +100,7 @@ impl Backend {
         host: String,
         path: String,
         service: String,
+        path_type: String,
         port: u16,
     ) -> Self {
         Backend {
@@ -107,6 +110,7 @@ impl Backend {
             path,
             service,
             port,
+            path_type,
         }
     }
 }
