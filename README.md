@@ -58,7 +58,7 @@ spec:
             port:
               number: 80
         path: /qux
-        pathType: Prefix
+        pathType: Exact
 ```
 
 yields the following VCL:
@@ -83,10 +83,10 @@ backend demo-media-media-v2-svc {
   
 
 sub vcl_recv {
- if (req.http.host == "foo.bar.com" && req.url ~ "/foo") {
+ if (req.http.host == "foo.bar.com" && req.url ~ "^/foo") {
         set req.backend_hint = demo-media-media-v1-svc;
     }
- if (req.http.host == "qux.bar.com" && req.url ~ "/qux") {
+ if (req.http.host == "qux.bar.com" && req.url == "/qux") {
         set req.backend_hint = demo-media-media-v2-svc;
     }
 }
