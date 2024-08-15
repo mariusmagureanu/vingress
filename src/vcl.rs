@@ -76,12 +76,6 @@ pub struct Vcl<'a> {
     pub content: String,
 }
 
-impl UpdateError {
-    pub fn new(err_text: String) -> Self {
-        UpdateError(err_text)
-    }
-}
-
 impl<'a> Vcl<'a> {
     pub fn new(file: &'a str, template: &'a str, work_folder: &'a str) -> Self {
         Vcl {
