@@ -2,7 +2,8 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::{fs::File, io::Write, process::Command};
+use std::io;
+use std::{fs::File, io::Write, process::Command, process::Stdio};
 
 const BACKEND: &str = "backend";
 const VCL: &str = "vcl";
@@ -15,6 +16,14 @@ impl std::fmt::Display for UpdateError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
+}
+
+pub struct Varnish<'a> {
+    pub cmd: &'a str,
+    pub address: &'a str,
+    pub vcl: &'a str,
+    pub work_dir: &'a str,
+    pub params: &'a str,
 }
 
 ///
@@ -177,4 +186,21 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
             String::from_utf8_lossy(&output.stdout)
         )))
     }
+}
+
+pub fn start_varnish(v: &Varnish) -> Result<u32, io::Error> {
+    info!("Starting the varnish process");
+
+    let mut args: Vec<&str> = vec!["-a", v.address, "-f", v.vcl, "-n", v.work_dir];
+
+    if !v.params.is_empty() {
+        args.push("-p");
+        args.push(v.params);
+    }
+
+    Command::new(v.cmd)
+        .args(args)
+        .stdout(Stdio::piped())
+        .spawn()
+        .map(|c| c.id())
 }

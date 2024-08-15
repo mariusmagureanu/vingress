@@ -3,6 +3,7 @@ use log::{error, info};
 use clap::Parser;
 use kube::Client;
 use std::process;
+use vcl::{start_varnish, Varnish};
 
 mod ingress;
 mod vcl;
@@ -25,6 +26,12 @@ struct Args {
 
     #[arg(short, long, default_value = "/etc/varnish/work")]
     working_folder: String,
+
+    #[arg(short, long, default_value = "")]
+    params: String,
+
+    #[arg(short, long, default_value = ":6081")]
+    address: String,
 }
 
 #[tokio::main]
@@ -34,6 +41,22 @@ async fn main() {
     std::env::set_var("RUST_LOG", args.log_level);
 
     env_logger::init();
+
+    let v = Varnish {
+        cmd: "varnishd",
+        address: &args.address,
+        vcl: &args.vcl,
+        work_dir: &args.working_folder,
+        params: &args.params,
+    };
+
+    match start_varnish(&v) {
+        Ok(pid) => info!("Varnish process started with pid: {}", pid),
+        Err(e) => {
+            error!("{}", e);
+            process::exit(1);
+        }
+    }
 
     let client = match Client::try_default().await {
         Ok(c) => c,
