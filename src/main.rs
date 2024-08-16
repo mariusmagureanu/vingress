@@ -3,9 +3,10 @@ use log::{error, info};
 use clap::Parser;
 use kube::Client;
 use std::process;
-use vcl::{start_varnish, Varnish};
+use varnish::{start, Varnish};
 
 mod ingress;
+mod varnish;
 mod vcl;
 mod vcl_test;
 
@@ -93,7 +94,7 @@ async fn main() {
         default_ttl: &args.default_ttl,
     };
 
-    match start_varnish(&v) {
+    match start(&v) {
         Ok(pid) => info!("Varnish process started with pid: {}", pid),
         Err(e) => {
             error!("{}", e);
