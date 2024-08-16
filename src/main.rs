@@ -12,26 +12,68 @@ mod vcl_test;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, default_value = "info")]
+    #[arg(
+        short,
+        long,
+        default_value = "info",
+        help = "Sets the log level of the varnish ingress controller"
+    )]
     log_level: String,
 
-    #[arg(short, long, default_value = "/etc/varnish/default.vcl")]
-    vcl: String,
+    #[arg(
+        long,
+        default_value = "/etc/varnish/default.vcl",
+        env = "VARNISH_VCL",
+        help = "Sets the path to Varnish's default vcl file (the equivalent of Varnish's [-f] param)"
+    )]
+    vcl_file: String,
 
-    #[arg(short, long, default_value = "./template/vcl.hbs")]
+    #[arg(
+        long,
+        default_value = "./template/vcl.hbs",
+        help = "Sets the path to the template file used to generate the VCL"
+    )]
     template: String,
 
-    #[arg(short, long, default_value = "varnish")]
-    class: String,
+    #[arg(
+        long,
+        default_value = "varnish",
+        help = "Sets the ingress class that controller will be looking for"
+    )]
+    ingress_class: String,
 
-    #[arg(short, long, default_value = "/etc/varnish/work")]
-    working_folder: String,
+    #[arg(
+        long,
+        default_value = "/etc/varnish",
+        env = "VARNISH_WORK_FOLDER",
+        help = "Sets the working folder for the running Varnish instance\
+             (the equivalent of Varnish's [-n] param)"
+    )]
+    work_folder: String,
 
-    #[arg(short, long, default_value = "")]
+    #[arg(
+        long,
+        default_value = "",
+        env = "VARNISH_PARAMS",
+        help = "Extra parameters sent to Varnish (the equivalent of Varnish's [-p] param)"
+    )]
     params: String,
 
-    #[arg(short, long, default_value = ":6081")]
-    address: String,
+    #[arg(
+        long,
+        default_value = "6081",
+        env = "VARNISH_HTTP_PORT",
+        help = "The http port at which Varnish will run"
+    )]
+    http_port: String,
+
+    #[arg(
+        long,
+        env = "VARNISH_DEFAULT_TTL",
+        default_value = "120s",
+        help = "Default TTL for cached objects (the equivalent of Varnish's [-t] param)"
+    )]
+    default_ttl: String,
 }
 
 #[tokio::main]
@@ -44,10 +86,11 @@ async fn main() {
 
     let v = Varnish {
         cmd: "varnishd",
-        address: &args.address,
-        vcl: &args.vcl,
-        work_dir: &args.working_folder,
+        port: &args.http_port,
+        vcl: &args.vcl_file,
+        work_dir: &args.work_folder,
         params: &args.params,
+        default_ttl: &args.default_ttl,
     };
 
     match start_varnish(&v) {
@@ -66,14 +109,17 @@ async fn main() {
         }
     };
 
-    info!("Started watching ingresses of class: [{}]", args.class);
+    info!(
+        "Started watching ingresses of class: [{}]",
+        args.ingress_class
+    );
 
     ingress::watch_ingresses(
         client,
-        &args.vcl,
+        &args.vcl_file,
         &args.template,
-        &args.working_folder,
-        &args.class,
+        &args.work_folder,
+        &args.ingress_class,
     )
     .await;
 }

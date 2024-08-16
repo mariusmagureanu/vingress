@@ -20,10 +20,11 @@ impl std::fmt::Display for UpdateError {
 
 pub struct Varnish<'a> {
     pub cmd: &'a str,
-    pub address: &'a str,
+    pub port: &'a str,
     pub vcl: &'a str,
     pub work_dir: &'a str,
     pub params: &'a str,
+    pub default_ttl: &'a str,
 }
 
 ///
@@ -189,14 +190,25 @@ pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
 }
 
 pub fn start_varnish(v: &Varnish) -> Result<u32, io::Error> {
-    info!("Starting the varnish process");
+    let varnish_addrr = format!("0.0.0.0:{}", v.port).clone();
 
-    let mut args: Vec<&str> = vec!["-a", v.address, "-f", v.vcl, "-n", v.work_dir];
+    let mut args: Vec<&str> = vec![
+        "-a",
+        &varnish_addrr,
+        "-f",
+        v.vcl,
+        "-n",
+        v.work_dir,
+        "-t",
+        v.default_ttl,
+    ];
 
     if !v.params.is_empty() {
         args.push("-p");
         args.push(v.params);
     }
+
+    info!("Starting Varnish with the following args: {:?}", args);
 
     Command::new(v.cmd)
         .args(args)
