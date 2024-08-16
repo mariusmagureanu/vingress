@@ -33,6 +33,11 @@ spec:
               value: "{{ .Values.varnish.params }}"
             - name: VARNISH_DEFAULT_TTL
               value: "{{ .Values.varnish.defaultTtl }}"
+            - name: VARNISH_VCL_SNIPPET
+              valueFrom:
+                configMapKeyRef:
+                  name: varnish-vcl
+                  key: snippet
           resources:
             requests:
               memory: "{{ .Values.resources.requests.memory }}"
