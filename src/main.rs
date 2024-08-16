@@ -75,6 +75,14 @@ struct Args {
         help = "Default TTL for cached objects (the equivalent of Varnish's [-t] param)"
     )]
     default_ttl: String,
+
+    #[arg(
+        long,
+        env = "VARNISH_VCL_SNIPPET",
+        default_value = "",
+        help = "Extra VCL code to be added at the end of the generated VCL"
+    )]
+    vcl_snippet: String,
 }
 
 #[tokio::main]
@@ -121,6 +129,7 @@ async fn main() {
         &args.template,
         &args.work_folder,
         &args.ingress_class,
+        &args.vcl_snippet,
     )
     .await;
 }

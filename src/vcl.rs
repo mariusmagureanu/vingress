@@ -5,6 +5,7 @@ use serde_json::value::Map;
 use std::{fs::File, io::Write, process::Command};
 
 const BACKEND: &str = "backend";
+const SNIPPET: &str = "snippet";
 const VCL: &str = "vcl";
 const RELOAD_COMMAND: &str = "varnishreload";
 
@@ -73,15 +74,17 @@ pub struct Vcl<'a> {
     pub template: &'a str,
     pub file: &'a str,
     pub work_folder: &'a str,
+    pub snippet: &'a str,
     pub content: String,
 }
 
 impl<'a> Vcl<'a> {
-    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str) -> Self {
+    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str, snippet: &'a str) -> Self {
         Vcl {
             template,
             file,
             work_folder,
+            snippet,
             content: String::new(),
         }
     }
@@ -121,7 +124,9 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     }
 
     let mut vcl_data = Map::new();
+
     vcl_data.insert(BACKEND.to_string(), to_json(backends));
+    vcl_data.insert(SNIPPET.to_string(), to_json(vcl.snippet));
 
     let rendered_content = match hb.render(VCL, &vcl_data) {
         Ok(content) => content,
