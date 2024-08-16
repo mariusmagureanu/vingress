@@ -5,6 +5,7 @@ use kube::Client;
 use std::process;
 use varnish::{start, Varnish};
 
+mod configmap;
 mod ingress;
 mod varnish;
 mod vcl;
