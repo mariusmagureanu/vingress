@@ -8,14 +8,7 @@ use kube::{
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 
-pub async fn watch_ingresses(
-    client: Client,
-    vcl_file: &str,
-    vcl_template: &str,
-    working_folder: &str,
-    ingress_class_name: &str,
-    vcl_snippet: &str,
-) {
+pub async fn watch_ingresses(client: Client, vcl: &mut Vcl<'_>, ingress_class_name: &str) {
     let ingress_api: Api<Ingress> = Api::all(client);
 
     let mut observer = watcher(
@@ -32,23 +25,11 @@ pub async fn watch_ingresses(
         match ev {
             watcher::Event::Apply(ingress) => {
                 handle_ingress_event(&ingress, ingress_class_name, &mut backends);
-                reconcile_backends(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    vcl_snippet,
-                    &backends,
-                );
+                reconcile_backends(vcl, &backends);
             }
             watcher::Event::Delete(ingress) => {
                 handle_ingress_delete(&ingress, ingress_class_name, &mut backends);
-                reconcile_backends(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    vcl_snippet,
-                    &backends,
-                );
+                reconcile_backends(vcl, &backends);
             }
             watcher::Event::Init => {
                 debug!("Initialization event received");
@@ -60,13 +41,7 @@ pub async fn watch_ingresses(
                 info!(
                     "Finished processing initial ingress resources. Starting VCL reconciliation."
                 );
-                reconcile_backends(
-                    vcl_file,
-                    vcl_template,
-                    working_folder,
-                    vcl_snippet,
-                    &backends,
-                );
+                reconcile_backends(vcl, &backends);
             }
         }
     }
@@ -182,18 +157,10 @@ fn handle_ingress_delete(
     backends.remove(ing_name);
 }
 
-fn reconcile_backends(
-    vcl_file: &str,
-    vcl_template: &str,
-    working_folder: &str,
-    vcl_snippet: &str,
-    backends: &HashMap<String, Vec<Backend>>,
-) {
+fn reconcile_backends(v: &mut Vcl, backends: &HashMap<String, Vec<Backend>>) {
     let backends_list = backends.values().flatten().cloned().collect();
 
-    let mut v = Vcl::new(vcl_file, vcl_template, working_folder, vcl_snippet);
-
-    if let Some(e) = update(&mut v, backends_list) {
+    if let Some(e) = update(v, backends_list) {
         error!("{}", e);
         return;
     }

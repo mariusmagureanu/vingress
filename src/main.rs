@@ -4,6 +4,7 @@ use clap::Parser;
 use kube::Client;
 use std::process;
 use varnish::{start, Varnish};
+use vcl::Vcl;
 
 mod configmap;
 mod ingress;
@@ -124,13 +125,12 @@ async fn main() {
         args.ingress_class
     );
 
-    ingress::watch_ingresses(
-        client,
+    let mut vcl = Vcl::new(
         &args.vcl_file,
         &args.template,
         &args.work_folder,
-        &args.ingress_class,
         &args.vcl_snippet,
-    )
-    .await;
+    );
+
+    ingress::watch_ingresses(client, &mut vcl, &args.ingress_class).await;
 }
