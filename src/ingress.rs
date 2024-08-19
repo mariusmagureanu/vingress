@@ -1,6 +1,7 @@
 use crate::vcl::{reload, update, Backend, Vcl};
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::networking::v1::Ingress;
+use kube::runtime::watcher::Error as WatcherError;
 use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
@@ -8,7 +9,11 @@ use kube::{
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 
-pub async fn watch_ingresses(client: Client, vcl: &mut Vcl<'_>, ingress_class_name: &str) {
+pub async fn watch_ingresses(
+    client: Client,
+    vcl: &Vcl<'_>,
+    ingress_class_name: &str,
+) -> Result<(), WatcherError> {
     let ingress_api: Api<Ingress> = Api::all(client);
 
     let mut observer = watcher(
@@ -20,6 +25,11 @@ pub async fn watch_ingresses(client: Client, vcl: &mut Vcl<'_>, ingress_class_na
     .boxed();
 
     let mut backends: HashMap<String, Vec<Backend>> = HashMap::new();
+
+    info!(
+        "Started watching ingresses of class: [{}]",
+        ingress_class_name,
+    );
 
     while let Some(ev) = observer.try_next().await.unwrap() {
         match ev {
@@ -45,6 +55,7 @@ pub async fn watch_ingresses(client: Client, vcl: &mut Vcl<'_>, ingress_class_na
             }
         }
     }
+    Ok(())
 }
 
 fn is_varnish_class(ing: &Ingress, ingress_class_name: &str) -> bool {
@@ -157,7 +168,7 @@ fn handle_ingress_delete(
     backends.remove(ing_name);
 }
 
-fn reconcile_backends(v: &mut Vcl, backends: &HashMap<String, Vec<Backend>>) {
+fn reconcile_backends(v: &Vcl, backends: &HashMap<String, Vec<Backend>>) {
     let backends_list = backends.values().flatten().cloned().collect();
 
     if let Some(e) = update(v, backends_list) {

@@ -116,7 +116,7 @@ impl Backend {
 /// Update the specified vcl file with the provided
 /// list of Backend objects.
 ///
-pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
+pub fn update(vcl: &Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     let mut hb = Handlebars::new();
 
     if let Err(e) = hb.register_template_file(VCL, vcl.template) {
@@ -135,9 +135,9 @@ pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
         }
     };
 
-    vcl.content = rendered_content;
-
-    if let Err(e) = File::create(vcl.file).and_then(|mut f| f.write_all(vcl.content.as_bytes())) {
+    if let Err(e) =
+        File::create(vcl.file).and_then(|mut f| f.write_all(rendered_content.as_bytes()))
+    {
         return Some(UpdateError(format!(
             "Vcl [{}] file write error: {}",
             vcl.file, e

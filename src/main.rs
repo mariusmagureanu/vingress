@@ -1,8 +1,11 @@
+use configmap::watch_configmap;
+use ingress::watch_ingresses;
 use log::{error, info};
 
 use clap::Parser;
 use kube::Client;
 use std::process;
+use tokio::join;
 use varnish::{start, Varnish};
 use vcl::Vcl;
 
@@ -120,17 +123,23 @@ async fn main() {
         }
     };
 
-    info!(
-        "Started watching ingresses of class: [{}]",
-        args.ingress_class
-    );
-
-    let mut vcl = Vcl::new(
+    let vcl = Vcl::new(
         &args.vcl_file,
         &args.template,
         &args.work_folder,
         &args.vcl_snippet,
     );
 
-    ingress::watch_ingresses(client, &mut vcl, &args.ingress_class).await;
+    let ingress_future = watch_ingresses(client.clone(), &vcl, &args.ingress_class);
+    let configmap_future = watch_configmap(client, &vcl, "varnish-vcl", "sec-pre");
+
+    let (ingress_result, configmap_result) = join!(ingress_future, configmap_future);
+
+    if let Err(e) = ingress_result {
+        error!("Error watching ingresses: {}", e);
+    }
+
+    if let Err(e) = configmap_result {
+        error!("Error watching configmap: {}", e);
+    }
 }
