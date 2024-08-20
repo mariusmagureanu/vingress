@@ -31,7 +31,7 @@ the Varnish VCL accordingly. After a succesfull VCL file update, Varnish will re
 
 Example:
 
-This Ingress spec:
+The following Ingress spec:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -105,7 +105,7 @@ sub vcl_recv {
 ### Installation and usage
 
 At the time of writing this, the installation is available only via Helm from your local machine.
-Make sure you're connected to a cluster and run the following:
+Make sure you're connected to a Kubernetes cluster and run the following:
 
 ```sh
 $ helm package chart/
@@ -117,15 +117,19 @@ Update the spec of your Ingress(es) with the following requirements:
 1. add the following label: ``kubernetes.io/ingress-class: varnish``
 2. set the ingress class: ``spec.ingressClassName: varnish``
 
-Investigate the logs of the varnish-controller pod, they should reflect the updates mentioned above on your Ingress object(s):
+Investigate the logs of the ``varnish-ingress-controller`` pod, they should reflect the updates mentioned above on your Ingress object(s):
+
+Example:
 
 ```sh
-$ kubectl -n <your-namespace> logs po/varnish-ingress-controller-xxxxxxxxxx-yyyyy -c varnish-controller
+$ kubectl -n <your-namespace> logs po/varnish-ingress-controller-xxxxxxxxxx-yyyyy 
 ```
 
 A Kubernetes service is available to be used for reaching the Varnish containers. It is up to you whether this service
 should be used in conjuction with a load-balancer or not. 
-For quick testing and short feedback loops it's easier to just port forward it locally:
+For quick testing and shorter feedback loops it's easier to just port forward it locally:
+
+Example:
 
 ```
 $ kubectl -n <your-namespace> port-forward svc/varnish-ingress-service 8081:8081
@@ -140,10 +144,12 @@ The ``varnish-ingress-controller`` translates the Ingress spec into VCL syntax. 
 case that the generated VCL needs to be extended to accomodate the various use cases.
 
 Check for the ``varnish-vcl`` configmap in the namespace where the ``varnish-ingress-controller`` is installed.
-The confimap has a field called ``snippet`` which is watched by the ingress-controller.
+The configmap has a field called ``snippet`` which is watched by the ingress-controller.
 
-Whenever the ``snippet`` field is udpdated - its value is appended at the end of the generated VCL
+Whenever the ``snippet`` field is udpdated - its value is **appended** at the end of the generated VCL
 and a ``varnishreload`` command is issued.
+
+Example: 
 
 ```sh
 $ kubectl -n <your-namespace> get cm/varnish-vcl -o yaml
@@ -155,11 +161,11 @@ kind: ConfigMap
 metadata:
   annotations:
     meta.helm.sh/release-name: varnish-ingress-controller
-    meta.helm.sh/release-namespace: foobar
+    meta.helm.sh/release-namespace: demo
   labels:
     app.kubernetes.io/managed-by: Helm
   name: varnish-vcl
-  namespace: foobar
+  namespace: demo
   resourceVersion: "154768231"
 data:
   snippet: |
