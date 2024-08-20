@@ -6,12 +6,14 @@ use kube::{
     Api, Client,
 };
 use log::{info, warn};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::vcl::{reload, Vcl};
 
 pub async fn watch_configmap(
     client: Client,
-    vcl: &Vcl<'_>,
+    vcl: &Rc<RefCell<Vcl>>,
     configmap_name: &str,
     namespace: &str,
 ) -> Result<(), WatcherError> {
@@ -36,7 +38,7 @@ pub async fn watch_configmap(
     Ok(())
 }
 
-fn handle_configmap_event(cm: &ConfigMap, vcl: &Vcl, configmap_name: &str) {
+fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name: &str) {
     if let Some(name) = cm.metadata().name.as_ref() {
         if name != configmap_name {
             return;

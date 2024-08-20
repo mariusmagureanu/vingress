@@ -1,6 +1,8 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
 use log::{error, info};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use clap::Parser;
 use kube::Client;
@@ -124,14 +126,16 @@ async fn main() {
     };
 
     let vcl = Vcl::new(
-        &args.vcl_file,
-        &args.template,
-        &args.work_folder,
-        &args.vcl_snippet,
+        args.vcl_file,
+        args.template,
+        args.work_folder,
+        args.vcl_snippet,
     );
 
-    let ingress_future = watch_ingresses(client.clone(), &vcl, &args.ingress_class);
-    let configmap_future = watch_configmap(client, &vcl, "varnish-vcl", "sec-pre");
+    let rc_vcl = Rc::new(RefCell::new(vcl));
+
+    let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
+    let configmap_future = watch_configmap(client, &rc_vcl, "varnish-vcl", "sec-pre");
 
     let (ingress_result, configmap_result) = join!(ingress_future, configmap_future);
 

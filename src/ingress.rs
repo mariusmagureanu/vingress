@@ -7,11 +7,13 @@ use kube::{
     Api, Client,
 };
 use log::{debug, error, info, warn};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub async fn watch_ingresses(
     client: Client,
-    vcl: &Vcl<'_>,
+    vcl: &Rc<RefCell<Vcl>>,
     ingress_class_name: &str,
 ) -> Result<(), WatcherError> {
     let ingress_api: Api<Ingress> = Api::all(client);
@@ -25,7 +27,6 @@ pub async fn watch_ingresses(
     .boxed();
 
     let mut backends: HashMap<String, Vec<Backend>> = HashMap::new();
-
     info!(
         "Started watching ingresses of class: [{}]",
         ingress_class_name,
@@ -39,6 +40,7 @@ pub async fn watch_ingresses(
             }
             watcher::Event::Delete(ingress) => {
                 handle_ingress_delete(&ingress, ingress_class_name, &mut backends);
+
                 reconcile_backends(vcl, &backends);
             }
             watcher::Event::Init => {
@@ -168,10 +170,12 @@ fn handle_ingress_delete(
     backends.remove(ing_name);
 }
 
-fn reconcile_backends(v: &Vcl, backends: &HashMap<String, Vec<Backend>>) {
+fn reconcile_backends(v: &Rc<RefCell<Vcl>>, backends: &HashMap<String, Vec<Backend>>) {
     let backends_list = backends.values().flatten().cloned().collect();
 
-    if let Some(e) = update(v, backends_list) {
+    v.borrow_mut().backends = backends_list;
+
+    if let Some(e) = update(&v) {
         error!("{}", e);
         return;
     }

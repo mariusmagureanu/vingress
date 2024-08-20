@@ -2,6 +2,8 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{fs::File, io::Write, process::Command};
 
 const BACKEND: &str = "backend";
@@ -70,22 +72,22 @@ pub struct Backend {
 }
 
 #[derive(Serialize)]
-pub struct Vcl<'a> {
-    pub template: &'a str,
-    pub file: &'a str,
-    pub work_folder: &'a str,
-    pub snippet: &'a str,
-    pub content: String,
+pub struct Vcl {
+    pub template: String,
+    pub file: String,
+    pub work_folder: String,
+    pub snippet: String,
+    pub backends: Vec<Backend>,
 }
 
-impl<'a> Vcl<'a> {
-    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str, snippet: &'a str) -> Self {
+impl Vcl {
+    pub fn new(file: String, template: String, work_folder: String, snippet: String) -> Self {
         Vcl {
             template,
             file,
             work_folder,
             snippet,
-            content: String::new(),
+            backends: vec![],
         }
     }
 }
@@ -114,19 +116,20 @@ impl Backend {
 
 ///
 /// Update the specified vcl file with the provided
-/// list of Backend objects.
+/// list of Backend objects and vcl snippet.
 ///
-pub fn update(vcl: &Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
+pub fn update(v: &Rc<RefCell<Vcl>>) -> Option<UpdateError> {
     let mut hb = Handlebars::new();
 
-    if let Err(e) = hb.register_template_file(VCL, vcl.template) {
+    let vcl = v.borrow();
+    if let Err(e) = hb.register_template_file(VCL, vcl.template.clone()) {
         return Some(UpdateError(e.to_string()));
     }
 
     let mut vcl_data = Map::new();
 
-    vcl_data.insert(BACKEND.to_string(), to_json(backends));
-    vcl_data.insert(SNIPPET.to_string(), to_json(vcl.snippet));
+    vcl_data.insert(BACKEND.to_string(), to_json(vcl.backends.clone()));
+    vcl_data.insert(SNIPPET.to_string(), to_json(vcl.snippet.clone()));
 
     let rendered_content = match hb.render(VCL, &vcl_data) {
         Ok(content) => content,
@@ -136,7 +139,7 @@ pub fn update(vcl: &Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
     };
 
     if let Err(e) =
-        File::create(vcl.file).and_then(|mut f| f.write_all(rendered_content.as_bytes()))
+        File::create(vcl.file.clone()).and_then(|mut f| f.write_all(rendered_content.as_bytes()))
     {
         return Some(UpdateError(format!(
             "Vcl [{}] file write error: {}",
@@ -157,10 +160,11 @@ pub fn update(vcl: &Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
 ///
 /// See the Dockerfile and check what working folder
 /// is being provided to Varnish
-pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
+pub fn reload(v: &Rc<RefCell<Vcl>>) -> Option<UpdateError> {
+    let vcl = v.borrow();
     let output = match Command::new(RELOAD_COMMAND)
         .arg("-n")
-        .arg(vcl.work_folder)
+        .arg(vcl.work_folder.clone())
         .output()
     {
         Ok(output) => output,
