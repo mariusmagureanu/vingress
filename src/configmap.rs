@@ -12,7 +12,7 @@ use crate::vcl::{reload, update, Vcl};
 
 pub async fn watch_configmap(
     client: Client,
-    vcl: &Rc<RefCell<Vcl>>,
+    vcl: &Rc<RefCell<Vcl<'_>>>,
     configmap_name: &str,
     namespace: &str,
 ) -> Result<(), WatcherError> {

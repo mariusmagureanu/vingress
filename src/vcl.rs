@@ -72,16 +72,16 @@ pub struct Backend {
 }
 
 #[derive(Serialize)]
-pub struct Vcl {
-    pub template: String,
-    pub file: String,
-    pub work_folder: String,
+pub struct Vcl<'a> {
+    pub template: &'a str,
+    pub file: &'a str,
+    pub work_folder: &'a str,
     pub snippet: String,
     pub backends: Vec<Backend>,
 }
 
-impl Vcl {
-    pub fn new(file: String, template: String, work_folder: String, snippet: String) -> Self {
+impl<'a> Vcl<'a> {
+    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str, snippet: String) -> Self {
         Vcl {
             template,
             file,

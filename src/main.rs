@@ -125,9 +125,9 @@ async fn main() {
     };
 
     let vcl = Vcl::new(
-        args.vcl_file,
-        args.template,
-        args.work_folder,
+        &args.vcl_file,
+        &args.template,
+        &args.work_folder,
         args.vcl_snippet,
     );
 

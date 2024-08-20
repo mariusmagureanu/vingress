@@ -11,7 +11,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub async fn watch_ingresses(
     client: Client,
-    vcl: &Rc<RefCell<Vcl>>,
+    vcl: &Rc<RefCell<Vcl<'_>>>,
     ingress_class_name: &str,
 ) -> Result<(), WatcherError> {
     let ingress_api: Api<Ingress> = Api::all(client);
