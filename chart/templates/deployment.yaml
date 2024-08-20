@@ -19,6 +19,8 @@ spec:
         - name: varnish-controller
           image: "{{ .Values.image.controller.repository }}:{{ .Values.image.controller.tag }}"
           env:
+            - name: NAMESPACE
+              value: {{ .Release.Namespace }}
             - name: LOG_LEVEL
               value: info
             - name: INGRESS_CLASS

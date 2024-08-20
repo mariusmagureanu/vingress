@@ -89,6 +89,14 @@ struct Args {
         help = "Extra VCL code to be added at the end of the generated VCL"
     )]
     vcl_snippet: String,
+
+    #[arg(
+        long,
+        env = "NAMESPACE",
+        default_value = "default",
+        help = "The namespace where Varnish Ingress Controller operates in"
+    )]
+    namespace: String,
 }
 
 #[tokio::main]
@@ -134,7 +142,7 @@ async fn main() {
     let rc_vcl = Rc::new(RefCell::new(vcl));
 
     let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
-    let configmap_future = watch_configmap(client, &rc_vcl, "sec-pre");
+    let configmap_future = watch_configmap(client, &rc_vcl, &args.namespace);
 
     let (ingress_result, configmap_result) = join!(ingress_future, configmap_future);
 
