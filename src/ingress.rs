@@ -172,12 +172,12 @@ fn reconcile_backends(v: &Rc<RefCell<Vcl>>, backends: &HashMap<String, Vec<Backe
 
     v.borrow_mut().backends = backends_list;
 
-    if let Some(e) = update(&v.borrow()) {
+    if let Err(e) = update(&v.borrow()) {
         error!("{}", e);
         return;
     }
 
-    if let Some(e) = reload(&v.borrow()) {
+    if let Err(e) = reload(&v.borrow()) {
         error!("{}", e);
     }
 }

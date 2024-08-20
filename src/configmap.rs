@@ -47,12 +47,12 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
                 Some(snippet) => {
                     vcl.borrow_mut().snippet = snippet.clone();
 
-                    if let Some(e) = update(&vcl.borrow()) {
+                    if let Err(e) = update(&vcl.borrow()) {
                         error!("Failed to update VCL snippet: {}", e);
                         return;
                     }
 
-                    if let Some(e) = reload(&vcl.borrow()) {
+                    if let Err(e) = reload(&vcl.borrow()) {
                         error!("Failed to reload VCL with snippet: {}", e);
                     }
                 }
