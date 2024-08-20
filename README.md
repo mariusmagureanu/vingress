@@ -5,6 +5,14 @@ Lite implementation of a Varnish Ingress controller.
 
 ---
 
+### Table of contents
+
+- [How How does it work](#how-does-it-work)
+- [Installation and usage](#installation-and-usage)
+- [More VCL](#more-vcl)
+
+---
+
 ### How does it work
 
 The ``varnish-ingress-controller`` watches over Ingress objects in the cluster. The watcher is configured to
@@ -126,20 +134,33 @@ $ curl http://127.1:8081/foo -H "Host: foo.bar.com" -v
 
 ---
 
-### Extend the VCL
+### More VCL
 
-The ingress-controller translates the Ingress spec into VCL syntax. However, there's often the 
-case that the generated VCL needs to be extended to accomodate the various use-cases.
+The ``varnish-ingress-controller`` translates the Ingress spec into VCL syntax. However, there's often the 
+case that the generated VCL needs to be extended to accomodate the various use cases.
 
-Check for the ``varnish-vcl`` configmap in the namespace where the ingress-controller is installed.
-The confimap has a fiel called ``snippet`` which is watched by the ingress-controller.
+Check for the ``varnish-vcl`` configmap in the namespace where the ``varnish-ingress-controller`` is installed.
+The confimap has a field called ``snippet`` which is watched by the ingress-controller.
 
-Whenever the ``snippet`` field is udpdated - its value is appended at the end of the generated VCL.
+Whenever the ``snippet`` field is udpdated - its value is appended at the end of the generated VCL
+and a ``varnishreload`` command is issued.
 
 ```sh
-$ kubectl -n <namespace> get cm/varnish-vcl -o yaml
+$ kubectl -n <your-namespace> get cm/varnish-vcl -o yaml
+```
 
+```yaml
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: varnish-ingress-controller
+    meta.helm.sh/release-namespace: foobar
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  name: varnish-vcl
+  namespace: foobar
+  resourceVersion: "154768231"
 data:
   snippet: |
     sub vcl_backend_response {
@@ -157,16 +178,4 @@ data:
       }
       set resp.http.X-Varnish = "X-Varnish-foo";
     }
-kind: ConfigMap
-metadata:
-  annotations:
-    meta.helm.sh/release-name: varnish-ingress-controller
-    meta.helm.sh/release-namespace: sec-pre
-  creationTimestamp: "2024-08-20T09:04:12Z"
-  labels:
-    app.kubernetes.io/managed-by: Helm
-  name: varnish-vcl
-  namespace: foobar
-  resourceVersion: "154768231"
-  uid: 4d5c35ad-85c6-47ca-b820-30268c77302e
 ```
