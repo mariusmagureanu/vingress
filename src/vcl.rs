@@ -50,8 +50,6 @@ pub struct Backend {
     ///
     /// https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
     ///
-    /// Note: path-types are not yet accounted
-    /// for at the time of writing this.
     pub path: String,
 
     /// Kubernetes service name used
@@ -64,6 +62,7 @@ pub struct Backend {
     /// just so Varnish can resolve its IP.
     pub service: String,
 
+    /// PathType as defined in the Ingress spec
     pub path_type: String,
 
     /// Kubernetes service port used
@@ -159,7 +158,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 /// Example:
 ///
 /// ```bash
-/// $ varnishreload -n /etc/varnish/work
+/// $ varnishreload -n /etc/varnish
 /// ```
 ///
 /// Check the Dockerfile to see which working folder is being provided to Varnish.
