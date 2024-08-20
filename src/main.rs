@@ -134,7 +134,7 @@ async fn main() {
     let rc_vcl = Rc::new(RefCell::new(vcl));
 
     let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
-    let configmap_future = watch_configmap(client, &rc_vcl, "varnish-vcl", "sec-pre");
+    let configmap_future = watch_configmap(client, &rc_vcl, "sec-pre");
 
     let (ingress_result, configmap_result) = join!(ingress_future, configmap_future);
 

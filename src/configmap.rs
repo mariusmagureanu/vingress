@@ -10,10 +10,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::vcl::{reload, update, Vcl};
 
+const CONFIGMAP_NAME: &str = "varnish-vcl";
+
 pub async fn watch_configmap(
     client: Client,
     vcl: &Rc<RefCell<Vcl<'_>>>,
-    configmap_name: &str,
     namespace: &str,
 ) -> Result<(), WatcherError> {
     let configmap_api: Api<ConfigMap> = Api::namespaced(client, namespace);
@@ -24,13 +25,13 @@ pub async fn watch_configmap(
 
     info!(
         "Started watching configmap: [{}] in namespace: [{}]",
-        configmap_name, namespace
+        CONFIGMAP_NAME, namespace
     );
 
     while let Some(event) = observer.try_next().await.unwrap() {
         match event {
-            watcher::Event::Apply(cm) => handle_configmap_event(&cm, vcl, configmap_name),
-            watcher::Event::Delete(cm) => handle_configmap_event(&cm, vcl, configmap_name),
+            watcher::Event::Apply(cm) => handle_configmap_event(&cm, vcl, CONFIGMAP_NAME),
+            watcher::Event::Delete(cm) => handle_configmap_event(&cm, vcl, CONFIGMAP_NAME),
             _ => {}
         }
     }
