@@ -69,7 +69,7 @@ kind: Ingress
 metadata:
   name: smp-ingress
   labels:
-    kubernetes.io/ingress-class: varnish
+    kubernetes.io/ingress: varnish
 spec:
   ingressClassName: varnish
   rules:
