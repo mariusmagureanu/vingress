@@ -39,27 +39,32 @@ pub async fn watch_configmap(
 }
 
 fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name: &str) {
-    if let Some(name) = cm.metadata().name.as_ref() {
-        if name != configmap_name {
-            return;
+    match cm.metadata().name.as_deref() {
+        Some(name) if name == configmap_name => {
+            info!("Reading the [{}] configmap", configmap_name);
+
+            match cm.data.as_ref().and_then(|data| data.get("snippet")) {
+                Some(snippet) => {
+                    vcl.borrow_mut().snippet = snippet.clone();
+
+                    if let Some(e) = update(&vcl.borrow()) {
+                        error!("Failed to update VCL snippet: {}", e);
+                        return;
+                    }
+
+                    if let Some(e) = reload(&vcl.borrow()) {
+                        error!("Failed to reload VCL with snippet: {}", e);
+                    }
+                }
+                None => {
+                    warn!(
+                        "No 'snippet' key found in the [{}] configmap",
+                        configmap_name
+                    );
+                }
+            }
         }
-    } else {
-        warn!("Could not get the name of vcl configmap");
-        return;
-    }
-
-    info!("Reading the [{}] configmap", configmap_name);
-
-    let snippet = cm.data.clone().unwrap().get("snippet").unwrap().clone();
-
-    vcl.borrow_mut().snippet = snippet.to_string();
-
-    if let Some(e) = update(&vcl.borrow()) {
-        error!("{}", e);
-        return;
-    }
-
-    if let Some(e) = reload(&vcl.borrow()) {
-        error!("{}", e);
+        Some(_) => { /* ConfigMap name does not match; do nothing. */ }
+        None => warn!("Could not get the name of VCL configmap"),
     }
 }
