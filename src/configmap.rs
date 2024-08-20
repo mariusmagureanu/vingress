@@ -5,11 +5,10 @@ use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
 };
-use log::{info, warn};
-use std::cell::RefCell;
-use std::rc::Rc;
+use log::{error, info, warn};
+use std::{cell::RefCell, rc::Rc};
 
-use crate::vcl::{reload, Vcl};
+use crate::vcl::{reload, update, Vcl};
 
 pub async fn watch_configmap(
     client: Client,
@@ -27,7 +26,8 @@ pub async fn watch_configmap(
         "Started watching configmap: [{}] in namespace: [{}]",
         configmap_name, namespace
     );
-    while let Some(event) = observer.try_next().await? {
+
+    while let Some(event) = observer.try_next().await.unwrap() {
         match event {
             watcher::Event::Apply(cm) => handle_configmap_event(&cm, vcl, configmap_name),
             watcher::Event::Delete(cm) => handle_configmap_event(&cm, vcl, configmap_name),
@@ -50,5 +50,16 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
 
     info!("Reading the [{}] configmap", configmap_name);
 
-    reload(vcl);
+    let snippet = cm.data.clone().unwrap().get("snippet").unwrap().clone();
+
+    vcl.borrow_mut().snippet = snippet.to_string();
+
+    if let Some(e) = update(&vcl.borrow()) {
+        error!("{}", e);
+        return;
+    }
+
+    if let Some(e) = reload(&vcl.borrow()) {
+        error!("{}", e);
+    }
 }

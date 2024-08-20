@@ -1,8 +1,7 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
 use log::{error, info};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use clap::Parser;
 use kube::Client;

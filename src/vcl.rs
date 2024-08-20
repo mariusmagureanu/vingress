@@ -2,8 +2,6 @@ use handlebars::{to_json, Handlebars};
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::{fs::File, io::Write, process::Command};
 
 const BACKEND: &str = "backend";
@@ -118,10 +116,9 @@ impl Backend {
 /// Update the specified vcl file with the provided
 /// list of Backend objects and vcl snippet.
 ///
-pub fn update(v: &Rc<RefCell<Vcl>>) -> Option<UpdateError> {
+pub fn update(vcl: &Vcl) -> Option<UpdateError> {
     let mut hb = Handlebars::new();
 
-    let vcl = v.borrow();
     if let Err(e) = hb.register_template_file(VCL, vcl.template.clone()) {
         return Some(UpdateError(e.to_string()));
     }
@@ -160,8 +157,7 @@ pub fn update(v: &Rc<RefCell<Vcl>>) -> Option<UpdateError> {
 ///
 /// See the Dockerfile and check what working folder
 /// is being provided to Varnish
-pub fn reload(v: &Rc<RefCell<Vcl>>) -> Option<UpdateError> {
-    let vcl = v.borrow();
+pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
     let output = match Command::new(RELOAD_COMMAND)
         .arg("-n")
         .arg(vcl.work_folder.clone())

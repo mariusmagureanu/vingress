@@ -7,9 +7,7 @@ use kube::{
     Api, Client,
 };
 use log::{debug, error, info, warn};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub async fn watch_ingresses(
     client: Client,
@@ -40,7 +38,6 @@ pub async fn watch_ingresses(
             }
             watcher::Event::Delete(ingress) => {
                 handle_ingress_delete(&ingress, ingress_class_name, &mut backends);
-
                 reconcile_backends(vcl, &backends);
             }
             watcher::Event::Init => {
@@ -175,12 +172,12 @@ fn reconcile_backends(v: &Rc<RefCell<Vcl>>, backends: &HashMap<String, Vec<Backe
 
     v.borrow_mut().backends = backends_list;
 
-    if let Some(e) = update(&v) {
+    if let Some(e) = update(&v.borrow()) {
         error!("{}", e);
         return;
     }
 
-    if let Some(e) = reload(&v) {
+    if let Some(e) = reload(&v.borrow()) {
         error!("{}", e);
     }
 }
