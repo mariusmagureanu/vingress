@@ -20,7 +20,7 @@ The ``varnish-ingress-controller`` watches over Ingress objects in the cluster. 
 filter through Ingress objects with the following label:
 
 ```
-kubernetes.io/ingress-class=varnish
+kubernetes.io/ingress: varnish
 ```
 
 Also, all filtered Ingress objects must have their ``spec.ingressClassName`` set to ``varnish`` too. The spec of the Ingress objects 
@@ -115,7 +115,7 @@ $ helm upgrade varnish-ingress-controller --install --namespace <your-namespace>
 
 Update the spec of your Ingress(es) with the following requirements:
 
-1. add the following label: ``kubernetes.io/ingress-class: varnish``
+1. add the following label: ``kubernetes.io/ingress: varnish``
 2. set the ingress class: ``spec.ingressClassName: varnish``
 
 Investigate the logs of the ``varnish-ingress-controller`` pod, they should reflect the updates mentioned above on your Ingress object(s):
