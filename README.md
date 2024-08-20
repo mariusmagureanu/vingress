@@ -10,6 +10,7 @@ Lite implementation of a Varnish Ingress controller.
 - [How How does it work](#how-does-it-work)
 - [Installation and usage](#installation-and-usage)
 - [More VCL](#more-vcl)
+- [Misc](#misc)
 
 ---
 
@@ -71,7 +72,7 @@ spec:
 
 yields the following VCL:
 
-```
+```c
 vcl 4.1;
 
 import directors;
@@ -161,11 +162,11 @@ kind: ConfigMap
 metadata:
   annotations:
     meta.helm.sh/release-name: varnish-ingress-controller
-    meta.helm.sh/release-namespace: demo
+    meta.helm.sh/release-namespace: vingress
   labels:
     app.kubernetes.io/managed-by: Helm
   name: varnish-vcl
-  namespace: demo
+  namespace: vingress
   resourceVersion: "154768231"
 data:
   snippet: |
@@ -185,3 +186,13 @@ data:
       set resp.http.X-Varnish = "X-Varnish-foo";
     }
 ```
+
+---
+
+### Misc
+
+This paragraph highlights some assumptions made in this implementation.
+
+- Single container pod, the Varnish process is started within the controller code
+- The ``vcl_recv`` subroutine is configurable only via editing the vcl.hbs template
+- There is no fancy editing of the VCL file, when either the Ingress objects or the ``varnish-vcl`` Configmap changes, then the VCL file is rewritten entirely
