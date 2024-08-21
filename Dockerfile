@@ -7,12 +7,15 @@ COPY template/vcl.hbs template/vcl.hbs
 RUN cargo build --release
 
 
-FROM debian:bookworm-slim as release
+FROM varnish:7.5 as release
 LABEL maintainers="Varnish-Cache friends"
 
-RUN apt update && apt -y install varnish
-
+USER root
 WORKDIR controller
+
+RUN chown -R varnish:varnish /etc/varnish
+
+USER varnish
 
 COPY --from=builder ./template/vcl.hbs template/vcl.hbs
 COPY --from=builder ./target/release/vingress vingress-bin

@@ -1,12 +1,15 @@
 use handlebars::{to_json, Handlebars};
+use log::error;
 use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
 use std::{fs::File, io::Write, process::Command};
 
-const BACKEND: &str = "backend";
-const VCL: &str = "vcl";
 const RELOAD_COMMAND: &str = "varnishreload";
+
+const TEMPLATE_KEY: &str = "vcl";
+const BACKEND_KEY: &str = "backend";
+const SNIPPET_KEY: &str = "snippet";
 
 #[derive(Debug, PartialEq)]
 pub struct UpdateError(String);
@@ -47,8 +50,6 @@ pub struct Backend {
     ///
     /// https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
     ///
-    /// Note: path-types are not yet accounted
-    /// for at the time of writing this.
     pub path: String,
 
     /// Kubernetes service name used
@@ -61,6 +62,7 @@ pub struct Backend {
     /// just so Varnish can resolve its IP.
     pub service: String,
 
+    /// PathType as defined in the Ingress spec
     pub path_type: String,
 
     /// Kubernetes service port used
@@ -73,16 +75,18 @@ pub struct Vcl<'a> {
     pub template: &'a str,
     pub file: &'a str,
     pub work_folder: &'a str,
-    pub content: String,
+    pub snippet: String,
+    pub backends: Vec<Backend>,
 }
 
 impl<'a> Vcl<'a> {
-    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str) -> Self {
+    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str, snippet: String) -> Self {
         Vcl {
             template,
             file,
             work_folder,
-            content: String::new(),
+            snippet,
+            backends: vec![],
         }
     }
 }
@@ -110,71 +114,74 @@ impl Backend {
 }
 
 ///
-/// Update the specified vcl file with the provided
-/// list of Backend objects.
+/// Update the specified VCL file with the provided
+/// list of Backend objects and VCL snippet.
 ///
-pub fn update(vcl: &mut Vcl, backends: Vec<Backend>) -> Option<UpdateError> {
-    let mut hb = Handlebars::new();
+pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
+    let mut handlebars = Handlebars::new();
 
-    if let Err(e) = hb.register_template_file(VCL, vcl.template) {
-        return Some(UpdateError(e.to_string()));
-    }
+    // Register the template file with Handlebars
+    handlebars
+        .register_template_file(TEMPLATE_KEY, &vcl.template)
+        .map_err(|e| {
+            error!("Failed to register template file: {}", e);
+            UpdateError(e.to_string())
+        })?;
 
-    let mut vcl_data = Map::new();
-    vcl_data.insert(BACKEND.to_string(), to_json(backends));
+    // Prepare data for template rendering
+    let mut template_data = Map::new();
+    template_data.insert(BACKEND_KEY.to_string(), to_json(&vcl.backends));
+    template_data.insert(SNIPPET_KEY.to_string(), to_json(&vcl.snippet));
 
-    let rendered_content = match hb.render(VCL, &vcl_data) {
-        Ok(content) => content,
-        Err(e) => {
-            return Some(UpdateError(format!("Template render error: {}", e)));
-        }
-    };
+    // Render the template with the provided data
+    let rendered_content = handlebars
+        .render(TEMPLATE_KEY, &template_data)
+        .map_err(|e| {
+            error!("Template render error: {}", e);
+            UpdateError(format!("Template render error: {}", e))
+        })?;
 
-    vcl.content = rendered_content;
+    // Write the rendered content to the specified file
+    File::create(&vcl.file)
+        .and_then(|mut file| file.write_all(rendered_content.as_bytes()))
+        .map_err(|e| {
+            error!("Failed to write to VCL file [{}]: {}", vcl.file, e);
+            UpdateError(format!("VCL file write error: {}", e))
+        })?;
 
-    if let Err(e) = File::create(vcl.file).and_then(|mut f| f.write_all(vcl.content.as_bytes())) {
-        return Some(UpdateError(format!(
-            "Vcl [{}] file write error: {}",
-            vcl.file, e
-        )));
-    }
-
-    info!("Vcl file [{}] has been updated", vcl.file);
-    None
+    info!("VCL file [{}] has been successfully updated", vcl.file);
+    Ok(())
 }
 
+/// Triggers Varnish to reload its VCL configuration.
 ///
-/// Triggers Varnish to reload its vcl configuration.
+/// Example:
 ///
-/// E.g:
+/// ```bash
+/// $ varnishreload -n /etc/varnish
+/// ```
 ///
-/// $ varnishreload -n /etc/varnish/work
-///
-/// See the Dockerfile and check what working folder
-/// is being provided to Varnish
-pub fn reload(vcl: &Vcl) -> Option<UpdateError> {
-    let output = match Command::new(RELOAD_COMMAND)
+/// Check the Dockerfile to see which working folder is being provided to Varnish.
+pub fn reload(vcl: &Vcl) -> Result<(), UpdateError> {
+    let output = Command::new(RELOAD_COMMAND)
         .arg("-n")
-        .arg(vcl.work_folder)
+        .arg(&vcl.work_folder)
         .output()
-    {
-        Ok(output) => output,
-        Err(e) => {
-            return Some(UpdateError(format!(
-                "Vcl [{}] reload command error: {}",
+        .map_err(|e| {
+            UpdateError(format!(
+                "Failed to execute reload command for VCL [{}]: {}",
                 vcl.file, e
-            )));
-        }
-    };
+            ))
+        })?;
 
     if output.status.success() {
-        info!("Vcl [{}] reloaded successfully", vcl.file);
-        None
+        info!("VCL [{}] reloaded successfully.", vcl.file);
+        Ok(())
     } else {
-        Some(UpdateError(format!(
-            "Vcl [{}] reload error: {}",
-            vcl.file,
-            String::from_utf8_lossy(&output.stdout)
+        let stderr_output = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(UpdateError(format!(
+            "Failed to reload VCL [{}]: {}",
+            vcl.file, stderr_output
         )))
     }
 }

@@ -1,8 +1,5 @@
 replicaCount: 1
 image:
-  varnish:
-    repository: varnish
-    tag: "7.5"
   controller:
     repository: mariusm/vingress
     tag: "0.1.0"
@@ -17,18 +14,12 @@ resources:
     memory: "2048Mi"
     cpu: "150m"
 varnish:
-  httpPort: 6081
-  size: "2G"
-  args:
-    - "-f"
-    - "/etc/varnish/default.vcl"
-    - "-n"
-    - "/etc/varnish/work"
-    - "-p"
-    - "default_keep=300"
+  httpPort: "6081"
+  vclFile: "/etc/varnish/default.vcl"
+  workFolder: "/etc/varnish"
+  params: ""
+  defaultTtl: "120s"
 service:
   type: ClusterIP
   port: 8081
   targetPort: 6081
-initContainers:
-  name: varnish-init
