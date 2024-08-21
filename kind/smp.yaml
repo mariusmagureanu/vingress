@@ -1,7 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: smp
+  labels:
+    environment: smp-ingress-test
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: smp-post
+  namespace: smp
 spec:
   replicas: 1
   selector:
@@ -22,6 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: smp-post-svc
+  namespace: smp
 spec:
   ports:
     - port: 80
@@ -35,6 +44,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: smp
+  namespace: smp
 spec:
   replicas: 1
   selector:
@@ -55,6 +65,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: smp-svc
+  namespace: smp
 spec:
   ports:
     - port: 80
@@ -68,6 +79,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: smp-ingress
+  namespace: smp
   labels:
     kubernetes.io/ingress: varnish
 spec:
