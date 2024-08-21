@@ -7,7 +7,7 @@ Lite implementation of a Varnish Ingress controller.
 
 ### Table of contents
 
-- [How How does it work](#how-does-it-work)
+- [How does it work](#how-does-it-work)
 - [Installation and usage](#installation-and-usage)
 - [More VCL](#more-vcl)
 - [Misc](#misc)
