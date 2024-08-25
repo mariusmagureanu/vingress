@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  varnish-ingress-controller:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2024-08-25T22:09:57.106279+02:00"
+    description: A Helm chart for deploying the Varnish Ingress Controller
+    digest: dffc387d9f4eda232d6d6440ff39f9d8b8109bf27251b912f1bd0d78543e6623
+    name: varnish-ingress-controller
+    urls:
+    - https://mariusmagureanu.github.io/vingress/chart/varnish-ingress-controller-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-08-25T22:09:57.105902+02:00"
