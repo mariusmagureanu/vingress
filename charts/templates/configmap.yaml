@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: varnish-vcl
+  namespace: {{ .Release.Namespace }}
+data:
+  snippet: ""

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varnish-ingress-controller
+  labels:
+    app: varnish-ingress-controller
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: varnish-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: varnish-ingress-controller
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+        - name: varnish-controller
+          image: "{{ .Values.image.controller.repository }}:{{ .Values.image.controller.tag }}"
+          env:
+            - name: NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: LOG_LEVEL
+              value: info
+            - name: INGRESS_CLASS
+              value: varnish
+            - name: VARNISH_HTTP_PORT
+              value: "{{ .Values.varnish.httpPort }}"
+            - name: VARNISH_VCL
+              value: "{{ .Values.varnish.vclFile }}"
+            - name: VARNISH_WORK_FOLDER
+              value: "{{ .Values.varnish.workFolder }}"
+            - name: VARNISH_PARAMS
+              value: "{{ .Values.varnish.params }}"
+            - name: VARNISH_DEFAULT_TTL
+              value: "{{ .Values.varnish.defaultTtl }}"
+            - name: VARNISH_VCL_SNIPPET
+              valueFrom:
+                configMapKeyRef:
+                  name: varnish-vcl
+                  key: snippet
+          resources:
+            requests:
+              memory: "{{ .Values.resources.requests.memory }}"
+              cpu: "{{ .Values.resources.requests.cpu }}"
+            limits:
+              memory: "{{ .Values.resources.limits.memory }}"
+              cpu: "{{ .Values.resources.limits.cpu }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.varnish.httpPort }}
