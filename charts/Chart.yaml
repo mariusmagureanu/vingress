@@ -2,4 +2,19 @@ apiVersion: v2
 name: varnish-ingress-controller
 description: A Helm chart for deploying the Varnish Ingress Controller
 version: 0.1.0
-appVersion: "1.0"
+appVersion: "0.1.0"
+icon: https://varnish-cache.org/_static/varnish-bunny.png
+home: https://varnish-cache.org
+keywords:
+  - kubernetes
+  - helm
+  - varnish
+  - varnish-cache
+  - ingress
+maintainers:
+  - name: Marius Magureanu
+    email: mariusmagureanu@live.dk
+annotations:
+  category: cluster
+  artifacthub.io/category: networking
+  artifacthub.io/prerelease: "true"
