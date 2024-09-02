@@ -1,3 +1,4 @@
+use crate::configmap::{SNIPPET_KEY, VCL_RECV_SNIPPET_KEY};
 use handlebars::{to_json, Handlebars};
 use log::error;
 use log::info;
@@ -9,7 +10,6 @@ const RELOAD_COMMAND: &str = "varnishreload";
 
 const TEMPLATE_KEY: &str = "vcl";
 const BACKEND_KEY: &str = "backend";
-const SNIPPET_KEY: &str = "snippet";
 
 #[derive(Debug, PartialEq)]
 pub struct UpdateError(String);
@@ -76,16 +76,24 @@ pub struct Vcl<'a> {
     pub file: &'a str,
     pub work_folder: &'a str,
     pub snippet: String,
+    pub vcl_recv_snippet: String,
     pub backends: Vec<Backend>,
 }
 
 impl<'a> Vcl<'a> {
-    pub fn new(file: &'a str, template: &'a str, work_folder: &'a str, snippet: String) -> Self {
+    pub fn new(
+        file: &'a str,
+        template: &'a str,
+        work_folder: &'a str,
+        vcl_recv_snippet: String,
+        snippet: String,
+    ) -> Self {
         Vcl {
             template,
             file,
             work_folder,
             snippet,
+            vcl_recv_snippet,
             backends: vec![],
         }
     }
@@ -122,7 +130,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 
     // Register the template file with Handlebars
     handlebars
-        .register_template_file(TEMPLATE_KEY, &vcl.template)
+        .register_template_file(TEMPLATE_KEY, vcl.template)
         .map_err(|e| {
             error!("Failed to register template file: {}", e);
             UpdateError(e.to_string())
@@ -132,6 +140,10 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
     let mut template_data = Map::new();
     template_data.insert(BACKEND_KEY.to_string(), to_json(&vcl.backends));
     template_data.insert(SNIPPET_KEY.to_string(), to_json(&vcl.snippet));
+    template_data.insert(
+        VCL_RECV_SNIPPET_KEY.to_string(),
+        to_json(&vcl.vcl_recv_snippet),
+    );
 
     // Render the template with the provided data
     let rendered_content = handlebars
@@ -142,7 +154,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
         })?;
 
     // Write the rendered content to the specified file
-    File::create(&vcl.file)
+    File::create(vcl.file)
         .and_then(|mut file| file.write_all(rendered_content.as_bytes()))
         .map_err(|e| {
             error!("Failed to write to VCL file [{}]: {}", vcl.file, e);
@@ -157,7 +169,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 ///
 /// Example:
 ///
-/// ```bash
+/// ```sh
 /// $ varnishreload -n /etc/varnish
 /// ```
 ///
@@ -165,7 +177,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 pub fn reload(vcl: &Vcl) -> Result<(), UpdateError> {
     let output = Command::new(RELOAD_COMMAND)
         .arg("-n")
-        .arg(&vcl.work_folder)
+        .arg(vcl.work_folder)
         .output()
         .map_err(|e| {
             UpdateError(format!(

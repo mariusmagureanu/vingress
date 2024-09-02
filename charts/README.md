@@ -27,7 +27,7 @@ $ helm repo add varnish-ingress-controller https://mariusmagureanu.github.io/vin
 Install the Chart:
 
 ```sh
-$ helm install vingress --create-namespace -n varnish-ingress  varnish-ingress-controller/varnish-ingress-controller --version 0.1.0
+$ helm install vingress --create-namespace -n varnish-ingress  varnish-ingress-controller/varnish-ingress-controller
 ```
 
 ---
@@ -155,7 +155,11 @@ generation of the [vcl_recv](https://varnish-cache.org/docs/7.3/users-guide/vcl-
 
 In order to extend the generated VCL, use the ``varnish-vcl`` Configmap found in the namespace where the Ingress controller is installed.
 
-The content of the ``snippet`` field from the above mentioned Configmap is appended in the generated VCL.
+The mentioned Configmap exposes two fields as follows:
+
+ * ``vcl_recv_snippet``: snippet added in the ``vcl_recv`` subroutine after the backends selection
+ * ``snippet``: snippet added after the ``vcl_rec`` subroutine
+
 
 Example:
 
@@ -176,6 +180,10 @@ metadata:
   namespace: varnish-ingress
   resourceVersion: "154768231"
 data:
+  vcl_recv_snippet: |
+    if (! req.backend_hint) {
+      return (synth(200, "We're here now!"));
+    }
   snippet: |
     sub vcl_backend_response {
       if (beresp.status == 200) {

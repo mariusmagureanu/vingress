@@ -92,6 +92,14 @@ struct Args {
 
     #[arg(
         long,
+        env = "VARNISH_VCL_RECV_SNIPPET",
+        default_value = "",
+        help = "VCL code to be appended in the [vcl_recv] subroutine"
+    )]
+    vcl_recv_snippet: String,
+
+    #[arg(
+        long,
         env = "NAMESPACE",
         default_value = "default",
         help = "The namespace where Varnish Ingress Controller operates in"
@@ -136,6 +144,7 @@ async fn main() {
         &args.vcl_file,
         &args.template,
         &args.work_folder,
+        args.vcl_recv_snippet,
         args.vcl_snippet,
     );
 

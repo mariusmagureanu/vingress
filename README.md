@@ -20,12 +20,17 @@ Lite implementation of a Varnish Ingress controller.
 The ``varnish-ingress-controller`` watches over Ingress objects in the cluster. The watcher is configured to
 filter through Ingress objects with the following label:
 
-```
+```yaml
 kubernetes.io/ingress: varnish
 ```
 
-Also, all filtered Ingress objects must have their ``spec.ingressClassName`` set to ``varnish`` too. The spec of the Ingress objects 
-is then translated into Varnish [VCL](https://varnish-cache.org/docs/trunk/users-guide/vcl.html).
+**and** Ingress class name:
+
+```yaml
+spec.ingressClassName: varnish
+```
+
+The spec of the Ingress objects is then translated into Varnish [VCL](https://varnish-cache.org/docs/trunk/users-guide/vcl.html).
 
 The ``varnish-ingress-controller`` watches over ``INIT | ADD | UPDATE | DELETE`` Ingress events and updates
 the Varnish VCL accordingly. After a succesfull VCL file update, Varnish will reload its VCL just so it becomes aware of the latest configuration.
@@ -111,7 +116,7 @@ Make sure you're connected to a Kubernetes cluster and run the following:
 
 ```sh
 $ helm package chart/
-$ helm upgrade varnish-ingress-controller --install --namespace <your-namespace> --create-namespace ./varnish-ingress-controller-0.1.0.tgz -f chart/values.yaml
+$ helm upgrade varnish-ingress-controller --install --namespace <your-namespace> --create-namespace ./varnish-ingress-controller-0.2.0.tgz -f chart/values.yaml
 ```
 
 Update the spec of your Ingress(es) with the following requirements:
@@ -146,10 +151,15 @@ The ``varnish-ingress-controller`` translates the Ingress spec into VCL syntax. 
 case that the generated VCL needs to be extended to accomodate the various use cases.
 
 Check for the ``varnish-vcl`` configmap in the namespace where the ``varnish-ingress-controller`` is installed.
-The configmap has a field called ``snippet`` which is watched by the ingress-controller.
+The Configmap has the following fields which is watched by the ingress-controller:
 
-Whenever the ``snippet`` field is udpdated - its value is **appended** at the end of the generated VCL
-and a ``varnishreload`` command is issued.
+ * ``vcl_recv_snippet``: snippet added in the ``vcl_recv`` subroutine after the backends selection
+ * ``snippet``: snippet added after the ``vcl_rec`` subroutine
+
+Whenever these 2 mentioned fields in the Configmap are updated - the following happens:
+
+ 1. update the generated VCL file
+ 2. issue a ``varnishreload`` command just so Varnish picks up the new updates
 
 Example: 
 
@@ -170,6 +180,10 @@ metadata:
   namespace: vingress
   resourceVersion: "154768231"
 data:
+  vcl_recv_snippet: |
+    if (! req.backend_hint) {
+      return (synth(200, "We get here now!"));
+    }
   snippet: |
     sub vcl_backend_response {
       if (beresp.status == 200) {
