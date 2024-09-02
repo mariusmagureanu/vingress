@@ -25,7 +25,7 @@ Install the ``varnish-ingress-controller``:
 
 ```sh
 $ helm package chart/
-$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.1.0.tgz -f chart/values.yaml
+$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.2.0.tgz -f chart/values.yaml
 ```
 
 Port forward the ``varnish-ingress-controller`` service:
