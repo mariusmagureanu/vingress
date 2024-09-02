@@ -12,6 +12,9 @@ use crate::vcl::{reload, update, Vcl};
 
 const CONFIGMAP_NAME: &str = "varnish-vcl";
 
+pub const SNIPPET_KEY: &str = "snippet";
+pub const VCL_RECV_SNIPPET_KEY: &str = "vcl_recv_snippet";
+
 pub async fn watch_configmap(
     client: Client,
     vcl: &Rc<RefCell<Vcl<'_>>>,
@@ -46,14 +49,9 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
 
             let data = cm.data.as_ref();
 
-            let snippet_updated = if let Some(snippet) = data.and_then(|data| data.get("snippet")) {
+            let snippet_updated = if let Some(snippet) = data.and_then(|data| data.get(SNIPPET_KEY))
+            {
                 vcl.borrow_mut().snippet = snippet.clone();
-
-                if let Err(e) = update(&vcl.borrow()) {
-                    error!("Failed to update VCL snippet: {}", e);
-                    return;
-                }
-
                 true
             } else {
                 warn!(
@@ -64,14 +62,9 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
             };
 
             let vcl_recv_snippet_updated = if let Some(vcl_recv_snippet) =
-                data.and_then(|data| data.get("vcl_recv_snippet"))
+                data.and_then(|data| data.get(VCL_RECV_SNIPPET_KEY))
             {
                 vcl.borrow_mut().vcl_recv_snippet = vcl_recv_snippet.clone();
-
-                if let Err(e) = update(&vcl.borrow()) {
-                    error!("Failed to update VCL recv snippet: {}", e);
-                    return;
-                }
 
                 true
             } else {
@@ -82,14 +75,18 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
                 false
             };
 
-            // Reload VCL only if either snippet or vcl_recv_snippet was updated
             if snippet_updated || vcl_recv_snippet_updated {
+                if let Err(e) = update(&vcl.borrow()) {
+                    error!("Failed to update VCL with updated snippets: {}", e);
+                    return;
+                }
+
                 if let Err(e) = reload(&vcl.borrow()) {
                     error!("Failed to reload VCL with updated snippets: {}", e);
                 }
             }
         }
-        Some(_) => { /* ConfigMap name does not match; do nothing. */ }
+        Some(_) => {}
         None => warn!("Could not get the name of VCL configmap"),
     }
 }

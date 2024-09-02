@@ -1,3 +1,4 @@
+use crate::configmap::{SNIPPET_KEY, VCL_RECV_SNIPPET_KEY};
 use handlebars::{to_json, Handlebars};
 use log::error;
 use log::info;
@@ -9,8 +10,6 @@ const RELOAD_COMMAND: &str = "varnishreload";
 
 const TEMPLATE_KEY: &str = "vcl";
 const BACKEND_KEY: &str = "backend";
-const SNIPPET_KEY: &str = "snippet";
-const VCL_RECV_SNIPPET_KEY: &str = "vcl_recv_snippet";
 
 #[derive(Debug, PartialEq)]
 pub struct UpdateError(String);
@@ -170,7 +169,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 ///
 /// Example:
 ///
-/// ```bash
+/// ```sh
 /// $ varnishreload -n /etc/varnish
 /// ```
 ///
