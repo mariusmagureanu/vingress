@@ -44,24 +44,48 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
         Some(name) if name == configmap_name => {
             info!("Reading the [{}] configmap", configmap_name);
 
-            match cm.data.as_ref().and_then(|data| data.get("snippet")) {
-                Some(snippet) => {
-                    vcl.borrow_mut().snippet = snippet.clone();
+            let data = cm.data.as_ref();
 
-                    if let Err(e) = update(&vcl.borrow()) {
-                        error!("Failed to update VCL snippet: {}", e);
-                        return;
-                    }
+            let snippet_updated = if let Some(snippet) = data.and_then(|data| data.get("snippet")) {
+                vcl.borrow_mut().snippet = snippet.clone();
 
-                    if let Err(e) = reload(&vcl.borrow()) {
-                        error!("Failed to reload VCL with snippet: {}", e);
-                    }
+                if let Err(e) = update(&vcl.borrow()) {
+                    error!("Failed to update VCL snippet: {}", e);
+                    return;
                 }
-                None => {
-                    warn!(
-                        "No 'snippet' key found in the [{}] configmap",
-                        configmap_name
-                    );
+
+                true
+            } else {
+                warn!(
+                    "No 'snippet' key found in the [{}] configmap",
+                    configmap_name
+                );
+                false
+            };
+
+            let vcl_recv_snippet_updated = if let Some(vcl_recv_snippet) =
+                data.and_then(|data| data.get("vcl_recv_snippet"))
+            {
+                vcl.borrow_mut().vcl_recv_snippet = vcl_recv_snippet.clone();
+
+                if let Err(e) = update(&vcl.borrow()) {
+                    error!("Failed to update VCL recv snippet: {}", e);
+                    return;
+                }
+
+                true
+            } else {
+                warn!(
+                    "No 'vcl_recv_snippet' key found in the [{}] configmap",
+                    configmap_name
+                );
+                false
+            };
+
+            // Reload VCL only if either snippet or vcl_recv_snippet was updated
+            if snippet_updated || vcl_recv_snippet_updated {
+                if let Err(e) = reload(&vcl.borrow()) {
+                    error!("Failed to reload VCL with updated snippets: {}", e);
                 }
             }
         }

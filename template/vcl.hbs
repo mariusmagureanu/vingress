@@ -14,21 +14,24 @@ backend {{ b.name }} {
 {{/each}}
 
 sub vcl_recv {
-{{#each backend as |b| }}
-  {{#if (eq b.path_type "Prefix")}}
-    if (req.http.host == "{{ b.host }}" && req.url ~ "^{{ b.path }}") {
-      set req.backend_hint = {{ b.name }};
-    }
-  {{else if (eq b.path_type "Exact")}}
-    if (req.http.host == "{{ b.host }}" && req.url == "{{ b.path }}") {
-      set req.backend_hint = {{ b.name }};
-    }
-  {{else if (eq b.path_type "ImplementationSpecific")}}
-    if (req.http.host == "{{ b.host }}" && req.url ~ "{{ b.path }}") {
-      set req.backend_hint = {{ b.name }};
-    }
-  {{/if}}
-{{/each}}
+  {{#each backend as |b| }}
+    {{#if (eq b.path_type "Prefix")}}
+      if (req.http.host == "{{ b.host }}" && req.url ~ "^{{ b.path }}") {
+        set req.backend_hint = {{ b.name }};
+      }
+    {{else if (eq b.path_type "Exact")}}
+      if (req.http.host == "{{ b.host }}" && req.url == "{{ b.path }}") {
+        set req.backend_hint = {{ b.name }};
+      }
+    {{else if (eq b.path_type "ImplementationSpecific")}}
+      if (req.http.host == "{{ b.host }}" && req.url ~ "{{ b.path }}") {
+        set req.backend_hint = {{ b.name }};
+      }
+    {{/if}}
+  {{/each}}
+
+    {{{vcl_recv_snippet}}}
+
 }
 
 {{{snippet}}}

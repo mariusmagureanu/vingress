@@ -141,7 +141,10 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
     let mut template_data = Map::new();
     template_data.insert(BACKEND_KEY.to_string(), to_json(&vcl.backends));
     template_data.insert(SNIPPET_KEY.to_string(), to_json(&vcl.snippet));
-    template_data.insert(VCL_RECV_SNIPPET_KEY.to_string(), to_json(&vcl.vcl_recv_snippet));
+    template_data.insert(
+        VCL_RECV_SNIPPET_KEY.to_string(),
+        to_json(&vcl.vcl_recv_snippet),
+    );
 
     // Render the template with the provided data
     let rendered_content = handlebars

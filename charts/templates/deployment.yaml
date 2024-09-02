@@ -40,6 +40,11 @@ spec:
                 configMapKeyRef:
                   name: varnish-vcl
                   key: snippet
+            - name: VARNISH_VCL_RECV_SNIPPET
+              valueFrom:
+                configMapKeyRef:
+                  name: varnish-vcl
+                  key: vcl_recv_snippet
           resources:
             requests:
               memory: "{{ .Values.resources.requests.memory }}"
