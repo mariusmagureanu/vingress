@@ -68,6 +68,14 @@ struct Args {
 
     #[arg(
         long,
+        default_value = "",
+        env = "VARNISH_STORAGE",
+        help = "Storage backend for Varnish (the equivalent of Varnish's [-s] param)"
+    )]
+    storage: String,
+
+    #[arg(
+        long,
         default_value = "6081",
         env = "VARNISH_HTTP_PORT",
         help = "The http port at which Varnish will run"
@@ -122,6 +130,7 @@ async fn main() {
         work_dir: &args.work_folder,
         params: &args.params,
         default_ttl: &args.default_ttl,
+        storage: &args.storage,
     };
 
     match start(&v) {

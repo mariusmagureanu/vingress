@@ -9,6 +9,7 @@ pub struct Varnish<'a> {
     pub work_dir: &'a str,
     pub params: &'a str,
     pub default_ttl: &'a str,
+    pub storage: &'a str,
 }
 
 pub fn start(v: &Varnish) -> Result<u32, io::Error> {
@@ -25,9 +26,14 @@ pub fn start(v: &Varnish) -> Result<u32, io::Error> {
         v.default_ttl,
     ];
 
-    if !v.params.is_empty() {
+    let _ = v.params.split_whitespace().for_each(|p| {
         args.push("-p");
-        args.push(v.params);
+        args.push(p);
+    });
+
+    if !v.storage.is_empty() {
+        args.push("-s");
+        args.push(v.storage);
     }
 
     info!("Starting Varnish with the following args: {:?}", args);
