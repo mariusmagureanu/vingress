@@ -7,6 +7,7 @@ use kube::{
     Api, Client,
 };
 use log::{debug, error, info, warn};
+use std::process;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub async fn watch_ingresses(
@@ -174,10 +175,11 @@ fn reconcile_backends(v: &Rc<RefCell<Vcl>>, backends: &HashMap<String, Vec<Backe
 
     if let Err(e) = update(&v.borrow()) {
         error!("{}", e);
-        return;
+        process::exit(1);
     }
 
     if let Err(e) = reload(&v.borrow()) {
         error!("{}", e);
+        process::exit(1);
     }
 }
