@@ -49,7 +49,7 @@ mod test {
         backends.push(b3);
 
         v.backends = backends;
-        if let Err(e) = update(&mut v) {
+        if let Err(e) = update(&v) {
             panic!("{}", e);
         }
 
@@ -58,7 +58,7 @@ mod test {
                 let mut vcl_content_from_file: String = Default::default();
                 let _ = vf.read_to_string(&mut vcl_content_from_file);
 
-                assert!(vcl_content_from_file.len() > 0);
+                assert!(!vcl_content_from_file.is_empty());
             }
             Err(e) => panic!("{}", e),
         }

@@ -1,6 +1,6 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
-use log::{error, info};
+use log::error;
 use std::{cell::RefCell, rc::Rc};
 
 use clap::Parser;
@@ -133,13 +133,7 @@ async fn main() {
         storage: &args.storage,
     };
 
-    match start(&v) {
-        Ok(pid) => info!("Varnish process started with pid: {}", pid),
-        Err(e) => {
-            error!("{}", e);
-            process::exit(1);
-        }
-    }
+    start(&v).await;
 
     let client = match Client::try_default().await {
         Ok(c) => c,
