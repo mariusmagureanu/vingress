@@ -1,6 +1,7 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
 use log::error;
+use service::watch_service;
 use std::{cell::RefCell, rc::Rc};
 
 use clap::Parser;
@@ -12,6 +13,7 @@ use vcl::Vcl;
 
 mod configmap;
 mod ingress;
+mod service;
 mod varnish;
 mod vcl;
 mod vcl_test;
@@ -153,10 +155,16 @@ async fn main() {
 
     let rc_vcl = Rc::new(RefCell::new(vcl));
 
+    let service_future = watch_service(client.clone(), "varnish-ingress-service", &args.namespace);
     let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
     let configmap_future = watch_configmap(client, &rc_vcl, &args.namespace);
 
-    let (ingress_result, configmap_result) = join!(ingress_future, configmap_future);
+    let (service_result, ingress_result, configmap_result) =
+        join!(service_future, ingress_future, configmap_future);
+
+    if let Err(e) = service_result {
+        error!("Error watching service: {}", e);
+    }
 
     if let Err(e) = ingress_result {
         error!("Error watching ingresses: {}", e);
