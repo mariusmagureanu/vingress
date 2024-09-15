@@ -4,8 +4,14 @@ metadata:
   name: varnish-controller
 rules:
   - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get", "watch", "list"]
+    resources: ["ingressclasses"]
+    verbs: ["get", "watch", "list" ]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingresses/status"]
+    verbs: ["get", "watch", "list", "update"]
   - apiGroups: [""]
-    resources: ["configmaps"]
+    resources: ["configmaps", "services", "endpoints"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get"]
