@@ -7,7 +7,7 @@ use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
 };
-use log::{debug, error, info};
+use log::{error, info};
 
 pub async fn watch_service(
     client: Client,
@@ -23,15 +23,23 @@ pub async fn watch_service(
     .default_backoff()
     .boxed();
 
+    info!(
+        "Started watching service [{}] in namespace [{}]",
+        name, namespace
+    );
+
     while let Some(sv) = observer.try_next().await.unwrap() {
-        if let watcher::Event::Apply(svc) = sv { match update_status_from_svc(svc).await {
-            Ok(_lbi) => {
-                info!("reading service [{}]", name);
+        if let watcher::Event::Apply(svc) = sv {
+            match update_status_from_svc(svc).await {
+                Ok(lbi) => {
+                    info!("reading service [{}]", name);
+                    println!("{:?}", lbi);
+                }
+                Err(e) => {
+                    error!("{}", e);
+                }
             }
-            Err(e) => {
-                error!("{}", e);
-            }
-        } }
+        }
     }
     Ok(())
 }
@@ -45,7 +53,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             external_ips: Some(ref _external_ips),
             ..
         }) if svc_type == "ExternalName" => {
-            debug!("reading service type ExternalName");
+            info!("reading service type ExternalName");
             Ok(vec![IngressLoadBalancerIngress {
                 hostname: Some(external_name.clone()),
                 ip: None,
@@ -57,7 +65,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             cluster_ip: Some(ref cluster_ip),
             ..
         }) if svc_type == "ClusterIP" => {
-            debug!("reading service type ClusterIP");
+            info!("reading service type ClusterIP");
             Ok(vec![IngressLoadBalancerIngress {
                 ip: Some(cluster_ip.clone()),
                 hostname: None,
@@ -70,7 +78,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             cluster_ip: Some(ref cluster_ip),
             ..
         }) if svc_type == "NodePort" => {
-            debug!("reading service type NodePort");
+            info!("reading service type NodePort");
             if external_ips.is_empty() {
                 return Ok(vec![IngressLoadBalancerIngress {
                     ip: Some(cluster_ip.clone()),
