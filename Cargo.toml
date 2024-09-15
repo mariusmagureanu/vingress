@@ -1,6 +1,6 @@
 [package]
 name = "vingress"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 [profile.release]
@@ -16,9 +16,7 @@ tokio = { version = "1.38.1", features = ["full"] }
 futures = { version = "0.3.17", default-features = false }
 handlebars = "6.0.0"
 serde = "1.0.204"
-serde_derive = "1.0.204"
 serde_json = "1.0.120"
 env_logger = "0.11.5"
 log = "0.4.22"
 clap = {version = "4.5.11", features = ["derive","env"]}
-tokio-signal = "0.2.9"

@@ -3,4 +3,4 @@ kind: IngressClass
 metadata:
   name: varnish
 spec:
-  controller: acme.io/varnish-ingress-controller
+  controller: varnish.io/varnish-ingress-controller
