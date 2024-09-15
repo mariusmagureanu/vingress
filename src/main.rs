@@ -1,6 +1,6 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
-use log::{error, info};
+use log::error;
 use std::{cell::RefCell, rc::Rc};
 
 use clap::Parser;
@@ -68,6 +68,14 @@ struct Args {
 
     #[arg(
         long,
+        default_value = "",
+        env = "VARNISH_STORAGE",
+        help = "Storage backend for Varnish (the equivalent of Varnish's [-s] param)"
+    )]
+    storage: String,
+
+    #[arg(
+        long,
         default_value = "6081",
         env = "VARNISH_HTTP_PORT",
         help = "The http port at which Varnish will run"
@@ -122,15 +130,10 @@ async fn main() {
         work_dir: &args.work_folder,
         params: &args.params,
         default_ttl: &args.default_ttl,
+        storage: &args.storage,
     };
 
-    match start(&v) {
-        Ok(pid) => info!("Varnish process started with pid: {}", pid),
-        Err(e) => {
-            error!("{}", e);
-            process::exit(1);
-        }
-    }
+    start(&v).await;
 
     let client = match Client::try_default().await {
         Ok(c) => c,

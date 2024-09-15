@@ -6,6 +6,7 @@ use kube::{
     Api, Client,
 };
 use log::{error, info, warn};
+use std::process;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::vcl::{reload, update, Vcl};
@@ -78,11 +79,12 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
             if snippet_updated || vcl_recv_snippet_updated {
                 if let Err(e) = update(&vcl.borrow()) {
                     error!("Failed to update VCL with updated snippets: {}", e);
-                    return;
+                    process::exit(1);
                 }
 
                 if let Err(e) = reload(&vcl.borrow()) {
                     error!("Failed to reload VCL with updated snippets: {}", e);
+                    process::exit(1);
                 }
             }
         }

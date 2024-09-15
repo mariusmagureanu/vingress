@@ -21,3 +21,4 @@ serde_json = "1.0.120"
 env_logger = "0.11.5"
 log = "0.4.22"
 clap = {version = "4.5.11", features = ["derive","env"]}
+tokio-signal = "0.2.9"
