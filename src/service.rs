@@ -1,6 +1,8 @@
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::{Service, ServiceSpec};
 use k8s_openapi::api::networking::v1::IngressLoadBalancerIngress;
+use std::cmp::Ordering;
+use std::collections::HashSet;
 
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
@@ -45,40 +47,46 @@ pub async fn watch_service(
 }
 
 async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerIngress>, String> {
-    match svc.spec {
-        Some(ServiceSpec {
-            type_: Some(ref svc_type),
-            external_name: Some(ref external_name),
-            cluster_ip: Some(ref _cluster_ip),
-            external_ips: Some(ref _external_ips),
-            ..
-        }) if svc_type == "ExternalName" => {
+    let spec = svc.spec.as_ref().ok_or_else(|| "Service spec not found")?;
+
+    match spec.type_.as_deref() {
+        Some("ExternalName") => {
+            let external_name = spec
+                .external_name
+                .as_ref()
+                .ok_or_else(|| "External name not found")?;
             info!("reading service type ExternalName");
+
             Ok(vec![IngressLoadBalancerIngress {
                 hostname: Some(external_name.clone()),
                 ip: None,
                 ports: None,
             }])
         }
-        Some(ServiceSpec {
-            type_: Some(ref svc_type),
-            cluster_ip: Some(ref cluster_ip),
-            ..
-        }) if svc_type == "ClusterIP" => {
+
+        Some("ClusterIP") => {
+            let cluster_ip = spec
+                .cluster_ip
+                .as_ref()
+                .ok_or_else(|| "Cluster IP not found")?;
             info!("reading service type ClusterIP");
+
             Ok(vec![IngressLoadBalancerIngress {
                 ip: Some(cluster_ip.clone()),
                 hostname: None,
                 ports: None,
             }])
         }
-        Some(ServiceSpec {
-            type_: Some(ref svc_type),
-            external_ips: Some(ref external_ips),
-            cluster_ip: Some(ref cluster_ip),
-            ..
-        }) if svc_type == "NodePort" => {
+
+        Some("NodePort") => {
+            let cluster_ip = spec
+                .cluster_ip
+                .as_ref()
+                .ok_or_else(|| "Cluster IP not found")?;
+            let external_ips = spec.external_ips.as_deref().unwrap_or(&[]);
+
             info!("reading service type NodePort");
+
             if external_ips.is_empty() {
                 return Ok(vec![IngressLoadBalancerIngress {
                     ip: Some(cluster_ip.clone()),
@@ -86,16 +94,67 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
                     ports: None,
                 }]);
             }
-            let mut addrs = vec![];
-            for ip in external_ips {
-                addrs.push(IngressLoadBalancerIngress {
+
+            let addrs: Vec<IngressLoadBalancerIngress> = external_ips
+                .iter()
+                .map(|ip| IngressLoadBalancerIngress {
                     ip: Some(ip.clone()),
                     hostname: None,
                     ports: None,
-                });
-            }
+                })
+                .collect();
+
             Ok(addrs)
         }
-        _ => Err(String::from("unknown service type")),
+
+        Some("LoadBalancer") => {
+            let external_ips = spec.external_ips.as_deref().unwrap_or(&[]);
+            let mut addrs: Vec<IngressLoadBalancerIngress> = vec![];
+
+            info!("reading service type LoadBalancer");
+
+            if let Some(status) = &svc.status {
+                if let Some(load_balancer) = &status.load_balancer {
+                    if let Some(ingresses) = &load_balancer.ingress {
+                        addrs.extend(ingresses.iter().map(|ingress| IngressLoadBalancerIngress {
+                            ip: ingress.ip.clone(),
+                            hostname: ingress.hostname.clone(),
+                            ports: None,
+                        }));
+                    }
+                }
+            }
+
+            let existing_ips: HashSet<String> = addrs.iter().filter_map(|a| a.ip.clone()).collect();
+
+            for ip in external_ips {
+                if !existing_ips.contains(ip) {
+                    addrs.push(IngressLoadBalancerIngress {
+                        ip: Some(ip.clone()),
+                        hostname: None,
+                        ports: None,
+                    });
+                }
+            }
+
+            Ok(addrs)
+        }
+
+        Some(unknown_type) => Err(format!("Unknown service type: [{}]", unknown_type)),
+
+        None => Err("Service type not specified".to_string()),
     }
+}
+
+fn sort_load_balancer_ingresses(
+    mut lbi: Vec<IngressLoadBalancerIngress>,
+) -> Vec<IngressLoadBalancerIngress> {
+    lbi.sort_by(|a, b| match (&a.ip, &b.ip) {
+        (Some(ip_a), Some(ip_b)) => ip_a.cmp(ip_b),
+        (None, Some(_)) => Ordering::Greater,
+        (Some(_), None) => Ordering::Less,
+        (None, None) => Ordering::Equal,
+    });
+
+    lbi
 }
