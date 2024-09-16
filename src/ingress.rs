@@ -95,17 +95,19 @@ pub async fn update_status(
             let patch = json!({
                 "status": {
                     "loadBalancer": {
-                        "ingress": [load_balancer_ingress]
+                        "ingress": load_balancer_ingress
                     }
                 }
             });
 
-            let patch_params = PatchParams::apply("update-status").force();
+            debug!("Applying ingress status patch {}", patch);
+
+            let patch_params = PatchParams::apply("update-status");
 
             let ingress_api_namespaced = Api::<Ingress>::namespaced(client.clone(), &namespace);
 
             match ingress_api_namespaced
-                .patch_status(&name, &patch_params, &Patch::Apply(&patch))
+                .patch_status(&name, &patch_params, &Patch::Merge(&patch))
                 .await
             {
                 Ok(updated) => info!(
