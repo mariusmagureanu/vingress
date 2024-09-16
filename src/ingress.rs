@@ -64,7 +64,7 @@ pub async fn update_status(
     client: Client,
     load_balancer_ingress: Vec<IngressLoadBalancerIngress>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let ingress_api: Api<Ingress> = Api::all(client);
+    let ingress_api: Api<Ingress> = Api::all(client.clone());
 
     let ingresses = match ingress_api.list(&ListParams::default()).await {
         Ok(list) => list,
@@ -86,6 +86,11 @@ pub async fn update_status(
     for ingress in filtered_ingresses {
         if let Some(_status) = ingress.status {
             let name = ingress.metadata.name.clone().unwrap_or_default();
+            let namespace = ingress
+                .metadata
+                .namespace
+                .clone()
+                .unwrap_or("default".to_string());
 
             let patch = json!({
                 "status": {
@@ -97,18 +102,20 @@ pub async fn update_status(
 
             let patch_params = PatchParams::apply("update-status").force();
 
-            match ingress_api
-                .patch_status(&name, &patch_params, &Patch::Merge(&patch))
+            let ingress_api_namespaced = Api::<Ingress>::namespaced(client.clone(), &namespace);
+
+            match ingress_api_namespaced
+                .patch_status(&name, &patch_params, &Patch::Apply(&patch))
                 .await
             {
                 Ok(updated) => info!(
-                    "Patched ingress: {}",
+                    "Patched ingress: [{}]",
                     updated.metadata.name.unwrap_or_default()
                 ),
-                Err(err) => error!("Failed to patch ingress {}: {:?}", name, err),
+                Err(err) => error!("Failed to patch ingress [{}]: {:?}", name, err),
             }
         } else {
-            warn!("Ingress has no status: {:?}", ingress.metadata.name);
+            warn!("Ingress [{:?}] has no status", ingress.metadata.name);
         }
     }
 

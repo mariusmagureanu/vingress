@@ -71,10 +71,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
         }
 
         Some("ClusterIP") => {
-            let cluster_ip = spec
-                .cluster_ip
-                .as_ref()
-                .ok_or("Cluster IP not found")?;
+            let cluster_ip = spec.cluster_ip.as_ref().ok_or("Cluster IP not found")?;
             info!("reading service type ClusterIP");
 
             Ok(vec![IngressLoadBalancerIngress {
@@ -85,10 +82,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
         }
 
         Some("NodePort") => {
-            let cluster_ip = spec
-                .cluster_ip
-                .as_ref()
-                .ok_or("Cluster IP not found")?;
+            let cluster_ip = spec.cluster_ip.as_ref().ok_or("Cluster IP not found")?;
             let external_ips = spec.external_ips.as_deref().unwrap_or(&[]);
 
             info!("reading service type NodePort");

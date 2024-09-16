@@ -8,7 +8,7 @@ rules:
     verbs: ["get", "watch", "list" ]
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses", "ingresses/status"]
-    verbs: ["get", "watch", "list", "update"]
+    verbs: ["get", "watch", "list", "update", "patch"]
   - apiGroups: [""]
     resources: ["configmaps", "services", "endpoints"]
     verbs: ["get", "list", "watch"]
