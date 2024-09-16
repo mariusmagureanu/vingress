@@ -1,5 +1,5 @@
 use futures::{StreamExt, TryStreamExt};
-use k8s_openapi::api::core::v1::{Service, ServiceSpec};
+use k8s_openapi::api::core::v1::Service;
 use k8s_openapi::api::networking::v1::IngressLoadBalancerIngress;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -11,12 +11,14 @@ use kube::{
 };
 use log::{error, info};
 
+use crate::ingress::update_status;
+
 pub async fn watch_service(
     client: Client,
     name: &str,
     namespace: &str,
 ) -> Result<(), WatcherError> {
-    let service_api: Api<Service> = Api::namespaced(client, namespace);
+    let service_api: Api<Service> = Api::namespaced(client.clone(), namespace);
 
     let mut observer = watcher(
         service_api,
@@ -33,9 +35,13 @@ pub async fn watch_service(
     while let Some(sv) = observer.try_next().await.unwrap() {
         if let watcher::Event::Apply(svc) = sv {
             match update_status_from_svc(svc).await {
-                Ok(lbi) => {
+                Ok(mut lbi) => {
                     info!("reading service [{}]", name);
+                    lbi = sort_load_balancer_ingresses(lbi);
                     println!("{:?}", lbi);
+                    if let Err(e) = update_status(client.clone(), lbi).await {
+                        error!("Failed updating ingress status: {}", e);
+                    }
                 }
                 Err(e) => {
                     error!("{}", e);
@@ -47,14 +53,14 @@ pub async fn watch_service(
 }
 
 async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerIngress>, String> {
-    let spec = svc.spec.as_ref().ok_or_else(|| "Service spec not found")?;
+    let spec = svc.spec.as_ref().ok_or("Service spec not found")?;
 
     match spec.type_.as_deref() {
         Some("ExternalName") => {
             let external_name = spec
                 .external_name
                 .as_ref()
-                .ok_or_else(|| "External name not found")?;
+                .ok_or("External name not found")?;
             info!("reading service type ExternalName");
 
             Ok(vec![IngressLoadBalancerIngress {
@@ -68,7 +74,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             let cluster_ip = spec
                 .cluster_ip
                 .as_ref()
-                .ok_or_else(|| "Cluster IP not found")?;
+                .ok_or("Cluster IP not found")?;
             info!("reading service type ClusterIP");
 
             Ok(vec![IngressLoadBalancerIngress {
@@ -82,7 +88,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             let cluster_ip = spec
                 .cluster_ip
                 .as_ref()
-                .ok_or_else(|| "Cluster IP not found")?;
+                .ok_or("Cluster IP not found")?;
             let external_ips = spec.external_ips.as_deref().unwrap_or(&[]);
 
             info!("reading service type NodePort");
