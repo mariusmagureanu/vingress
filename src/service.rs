@@ -38,7 +38,6 @@ pub async fn watch_service(
                 Ok(mut lbi) => {
                     info!("reading service [{}]", name);
                     lbi = sort_load_balancer_ingresses(lbi);
-                    println!("{:?}", lbi);
                     if let Err(e) = update_status(client.clone(), lbi).await {
                         error!("Failed updating ingress status: {}", e);
                     }
