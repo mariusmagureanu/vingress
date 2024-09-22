@@ -1,5 +1,6 @@
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
+use leader::run_leader_election;
 use log::error;
 use service::watch_service;
 use std::{cell::RefCell, rc::Rc};
@@ -13,6 +14,7 @@ use vcl::Vcl;
 
 mod configmap;
 mod ingress;
+mod leader;
 mod service;
 mod varnish;
 mod vcl;
@@ -155,13 +157,21 @@ async fn main() {
 
     let rc_vcl = Rc::new(RefCell::new(vcl));
 
+    let leader_future = run_leader_election(client.clone());
     let service_future = watch_service(client.clone(), "varnish-ingress-service", &args.namespace);
     let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
     let configmap_future = watch_configmap(client, &rc_vcl, &args.namespace);
 
-    let (service_result, ingress_result, configmap_result) =
-        join!(service_future, ingress_future, configmap_future);
+    let (leader_result, service_result, ingress_result, configmap_result) = join!(
+        leader_future,
+        service_future,
+        ingress_future,
+        configmap_future
+    );
 
+    if let Err(e) = leader_result {
+        error!("Error starting the leader election: {}", e);
+    }
     if let Err(e) = service_result {
         error!("Error watching service: {}", e);
     }
