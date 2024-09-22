@@ -1,10 +1,10 @@
+use chrono::{SecondsFormat, Utc};
 use k8s_openapi::api::coordination::v1::Lease;
-use k8s_openapi::chrono::Utc;
 use kube::{
     api::{Api, Patch, PatchParams, PostParams},
     Client,
 };
-use log::{error, info};
+use log::{debug, error, info};
 use serde_json::json;
 use std::env;
 use tokio::time::{sleep, Duration};
@@ -15,16 +15,16 @@ pub async fn run_leader_election(client: Client) -> Result<(), Box<dyn std::erro
 
     let leases: Api<Lease> = Api::namespaced(client.clone(), &namespace);
 
-    let lease_name = "vingress-election-lock";
+    let lease_name = "vingress-leader-lock";
 
     loop {
-        match try_acquire_leadership(&leases, &lease_name, &pod_name).await {
+        match try_acquire_leadership(&leases, lease_name, &pod_name).await {
             Ok(true) => {
-                info!("I am the leader: {}", pod_name);
-                maintain_leadership(&leases, &lease_name, &pod_name).await;
+                info!("Current varnish-ingress-controller leader: {}", pod_name);
+                maintain_leadership(&leases, lease_name, &pod_name).await;
             }
             Ok(false) => {
-                info!("Waiting for leadership...");
+                debug!("Waiting for leadership...");
                 sleep(Duration::from_secs(5)).await;
             }
             Err(e) => {
@@ -80,7 +80,7 @@ async fn create_lease(
         "spec": {
             "holderIdentity": pod_name,
             "leaseDurationSeconds": 15,
-            "renewTime": Utc::now(),
+            "renewTime": Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
         }
     });
 
@@ -99,7 +99,7 @@ async fn update_lease(
         "spec": {
             "holderIdentity": pod_name,
             "leaseDurationSeconds": 15,
-            "renewTime": Utc::now(),
+            "renewTime": Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
         }
     });
 
