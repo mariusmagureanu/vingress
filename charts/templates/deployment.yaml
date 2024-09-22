@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: varnish-ingress-controller
+  namespace: {{ .Release.Namespace }}
   labels:
     app: varnish-ingress-controller
 spec:
@@ -16,18 +17,13 @@ spec:
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
-        env:
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name 
-        - name: NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace 
         - name: varnish-controller
           image: "{{ .Values.image.controller.repository }}:{{ .Values.image.controller.tag }}"
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name 
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
             - name: LOG_LEVEL

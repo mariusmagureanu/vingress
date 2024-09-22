@@ -2,7 +2,7 @@ FROM rust:1.81-alpine AS builder
 
 RUN apk add --no-cache musl-dev build-base
 
-COPY Cargo.toml Cargo.lock .
+COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY template/vcl.hbs template/vcl.hbs
 
