@@ -25,9 +25,9 @@ pub async fn run_leader_election(
     loop {
         match try_acquire_leadership(&leases, lease_name, &pod_name).await {
             Ok(true) => {
-                info!("Current varnish-ingress-controller leader: {}", pod_name);
-                maintain_leadership(&leases, lease_name, &pod_name).await;
                 leader_status.store(true, Ordering::Relaxed);
+                debug!("Current varnish-ingress-controller leader: {}", pod_name);
+                maintain_leadership(&leases, lease_name, &pod_name).await;
             }
             Ok(false) => {
                 leader_status.store(false, Ordering::Relaxed);

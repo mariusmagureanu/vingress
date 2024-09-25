@@ -35,9 +35,7 @@ pub async fn watch_service(
     );
 
     while let Some(sv) = observer.try_next().await.unwrap() {
-        let is_leader = leader_status.load(std::sync::atomic::Ordering::Relaxed);
-
-        if !is_leader {
+        if !leader_status.load(std::sync::atomic::Ordering::Relaxed) {
             continue;
         }
 
