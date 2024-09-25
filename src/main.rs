@@ -3,6 +3,8 @@ use ingress::watch_ingresses;
 use leader::run_leader_election;
 use log::error;
 use service::watch_service;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::{cell::RefCell, rc::Rc};
 
 use clap::Parser;
@@ -157,8 +159,16 @@ async fn main() {
 
     let rc_vcl = Rc::new(RefCell::new(vcl));
 
-    let leader_future = run_leader_election(client.clone());
-    let service_future = watch_service(client.clone(), "varnish-ingress-service", &args.namespace);
+    let leader_status = Arc::new(AtomicBool::new(false));
+
+    let leader_future = run_leader_election(leader_status.clone(), client.clone());
+
+    let service_future = watch_service(
+        leader_status.clone(),
+        client.clone(),
+        "varnish-ingress-service",
+        &args.namespace,
+    );
     let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
     let configmap_future = watch_configmap(client, &rc_vcl, &args.namespace);
 
@@ -170,8 +180,9 @@ async fn main() {
     );
 
     if let Err(e) = leader_result {
-        error!("Error starting the leader election: {}", e);
+        error!("Error establishing the leader: {}", e);
     }
+
     if let Err(e) = service_result {
         error!("Error watching service: {}", e);
     }

@@ -4,16 +4,18 @@ use k8s_openapi::api::networking::v1::IngressLoadBalancerIngress;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
+use crate::ingress::update_status;
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
 };
 use log::{error, info};
-
-use crate::ingress::update_status;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 pub async fn watch_service(
+    leader_status: Arc<AtomicBool>,
     client: Client,
     name: &str,
     namespace: &str,
@@ -33,6 +35,12 @@ pub async fn watch_service(
     );
 
     while let Some(sv) = observer.try_next().await.unwrap() {
+        let is_leader = leader_status.load(std::sync::atomic::Ordering::Relaxed);
+
+        if !is_leader {
+            continue;
+        }
+
         if let watcher::Event::Apply(svc) = sv {
             match update_status_from_svc(svc).await {
                 Ok(mut lbi) => {

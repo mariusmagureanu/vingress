@@ -7,9 +7,14 @@ use kube::{
 use log::{debug, error, info};
 use serde_json::json;
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
-pub async fn run_leader_election(client: Client) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_leader_election(
+    leader_status: Arc<AtomicBool>,
+    client: Client,
+) -> Result<(), Box<dyn std::error::Error>> {
     let pod_name = env::var("POD_NAME")?;
     let namespace = env::var("NAMESPACE").unwrap_or_else(|_| "default".into());
 
@@ -22,12 +27,15 @@ pub async fn run_leader_election(client: Client) -> Result<(), Box<dyn std::erro
             Ok(true) => {
                 info!("Current varnish-ingress-controller leader: {}", pod_name);
                 maintain_leadership(&leases, lease_name, &pod_name).await;
+                leader_status.store(true, Ordering::Relaxed);
             }
             Ok(false) => {
+                leader_status.store(false, Ordering::Relaxed);
                 debug!("Waiting for leadership...");
                 sleep(Duration::from_secs(5)).await;
             }
             Err(e) => {
+                leader_status.store(false, Ordering::Relaxed);
                 error!("Error during leader election: {:?}", e);
                 sleep(Duration::from_secs(5)).await;
             }
