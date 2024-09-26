@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   controller:
     repository: mariusm/vingress
-    tag: "0.2.1"
+    tag: "0.3.0"
   pullPolicy: Always
 serviceAccount:
   name: varnish-controller
