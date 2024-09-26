@@ -8,11 +8,11 @@ serviceAccount:
   name: varnish-controller
 resources:
   requests:
-    memory: "128Mi"
-    cpu: "100m"
+    memory: "1024Mi"
+    cpu: "500m"
   limits:
     memory: "2048Mi"
-    cpu: "150m"
+    cpu: "1"
 varnish:
   httpPort: "6081"
   vclFile: "/etc/varnish/default.vcl"
