@@ -1,19 +1,20 @@
+use clap::Parser;
+use cli::Args;
 use configmap::watch_configmap;
 use ingress::watch_ingresses;
+use kube::Client;
 use leader::run_leader_election;
 use log::error;
 use service::watch_service;
+use std::process;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::{cell::RefCell, rc::Rc};
-
-use clap::Parser;
-use kube::Client;
-use std::process;
 use tokio::join;
 use varnish::{start, Varnish};
 use vcl::Vcl;
 
+mod cli;
 mod configmap;
 mod ingress;
 mod leader;
@@ -21,105 +22,6 @@ mod service;
 mod varnish;
 mod vcl;
 mod vcl_test;
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[arg(
-        short,
-        long,
-        default_value = "info",
-        help = "Sets the log level of the varnish ingress controller"
-    )]
-    log_level: String,
-
-    #[arg(
-        long,
-        default_value = "/etc/varnish/default.vcl",
-        env = "VARNISH_VCL",
-        help = "Sets the path to Varnish's default vcl file (the equivalent of Varnish's [-f] param)"
-    )]
-    vcl_file: String,
-
-    #[arg(
-        long,
-        default_value = "./template/vcl.hbs",
-        help = "Sets the path to the template file used to generate the VCL"
-    )]
-    template: String,
-
-    #[arg(
-        long,
-        default_value = "varnish",
-        help = "Sets the ingress class that controller will be looking for"
-    )]
-    ingress_class: String,
-
-    #[arg(
-        long,
-        default_value = "/etc/varnish",
-        env = "VARNISH_WORK_FOLDER",
-        help = "Sets the working folder for the running Varnish instance\
-             (the equivalent of Varnish's [-n] param)"
-    )]
-    work_folder: String,
-
-    #[arg(
-        long,
-        default_value = "",
-        env = "VARNISH_PARAMS",
-        help = "Extra parameters sent to Varnish (the equivalent of Varnish's [-p] param)"
-    )]
-    params: String,
-
-    #[arg(
-        long,
-        default_value = "",
-        env = "VARNISH_STORAGE",
-        help = "Storage backend for Varnish (the equivalent of Varnish's [-s] param)"
-    )]
-    storage: String,
-
-    #[arg(
-        long,
-        default_value = "6081",
-        env = "VARNISH_HTTP_PORT",
-        help = "The http port at which Varnish will run"
-    )]
-    http_port: String,
-
-    #[arg(
-        long,
-        env = "VARNISH_DEFAULT_TTL",
-        default_value = "120s",
-        help = "Default TTL for cached objects (the equivalent of Varnish's [-t] param)"
-    )]
-    default_ttl: String,
-
-    #[arg(
-        long,
-        env = "VARNISH_VCL_SNIPPET",
-        default_value = "",
-        help = "Extra VCL code to be added at the end of the generated VCL"
-    )]
-    vcl_snippet: String,
-
-    #[arg(
-        long,
-        env = "VARNISH_VCL_RECV_SNIPPET",
-        default_value = "",
-        help = "VCL code to be appended in the [vcl_recv] subroutine"
-    )]
-    vcl_recv_snippet: String,
-
-    #[arg(
-        long,
-        env = "NAMESPACE",
-        default_value = "default",
-        help = "The namespace where Varnish Ingress Controller operates in"
-    )]
-    namespace: String,
-}
 
 #[tokio::main]
 async fn main() {
