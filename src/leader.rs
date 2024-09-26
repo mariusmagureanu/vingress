@@ -11,6 +11,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
+const LEASE_NAME: &str = "vingress-leader-lock";
+
 pub async fn run_leader_election(
     leader_status: Arc<AtomicBool>,
     client: Client,
@@ -20,14 +22,12 @@ pub async fn run_leader_election(
 
     let leases: Api<Lease> = Api::namespaced(client.clone(), &namespace);
 
-    let lease_name = "vingress-leader-lock";
-
     loop {
-        match try_acquire_leadership(&leases, lease_name, &pod_name).await {
+        match try_acquire_leadership(&leases, &pod_name).await {
             Ok(true) => {
                 leader_status.store(true, Ordering::Relaxed);
                 debug!("Current varnish-ingress-controller leader: {}", pod_name);
-                maintain_leadership(&leases, lease_name, &pod_name).await;
+                maintain_leadership(&leases, &pod_name).await;
             }
             Ok(false) => {
                 leader_status.store(false, Ordering::Relaxed);
@@ -45,13 +45,11 @@ pub async fn run_leader_election(
 
 async fn try_acquire_leadership(
     leases: &Api<Lease>,
-    lease_name: &str,
     pod_name: &str,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let lease = leases.get_opt(lease_name).await?;
+    let lease = leases.get_opt(LEASE_NAME).await?;
 
     if let Some(existing_lease) = lease {
-        // Check if current leader has expired
         let renewal_time = existing_lease
             .spec
             .as_ref()
@@ -63,27 +61,24 @@ async fn try_acquire_leadership(
         let duration_since_last_renewal = Utc::now() - renewal_time;
 
         if duration_since_last_renewal.num_seconds() > 15 {
-            // If the leader has not renewed in the last 15 seconds, try to take over
-            update_lease(leases, lease_name, pod_name).await?;
+            update_lease(leases, pod_name).await?;
             return Ok(true);
         }
 
         Ok(false)
     } else {
-        // Lease does not exist, create it
-        create_lease(leases, lease_name, pod_name).await?;
+        create_lease(leases, pod_name).await?;
         Ok(true)
     }
 }
 
 async fn create_lease(
     leases: &Api<Lease>,
-    lease_name: &str,
     pod_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let new_lease = json!({
         "metadata": {
-            "name": lease_name,
+            "name": LEASE_NAME,
         },
         "spec": {
             "holderIdentity": pod_name,
@@ -100,7 +95,6 @@ async fn create_lease(
 
 async fn update_lease(
     leases: &Api<Lease>,
-    lease_name: &str,
     pod_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let patch = json!({
@@ -113,7 +107,7 @@ async fn update_lease(
 
     leases
         .patch(
-            lease_name,
+            LEASE_NAME,
             &PatchParams::apply("leader-election"),
             &Patch::Merge(&patch),
         )
@@ -121,9 +115,9 @@ async fn update_lease(
     Ok(())
 }
 
-async fn maintain_leadership(leases: &Api<Lease>, lease_name: &str, pod_name: &str) {
+async fn maintain_leadership(leases: &Api<Lease>, pod_name: &str) {
     loop {
-        match update_lease(leases, lease_name, pod_name).await {
+        match update_lease(leases, pod_name).await {
             Ok(_) => {
                 info!("Leadership maintained by: {}", pod_name);
             }
