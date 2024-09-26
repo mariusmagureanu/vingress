@@ -1,12 +1,14 @@
 use crate::vcl::{reload, update, Backend, Vcl};
 use futures::{StreamExt, TryStreamExt};
-use k8s_openapi::api::networking::v1::Ingress;
+use k8s_openapi::api::networking::v1::{Ingress, IngressLoadBalancerIngress};
+use kube::api::{ListParams, Patch, PatchParams};
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
     runtime::{watcher, WatchStreamExt},
     Api, Client,
 };
 use log::{debug, error, info, warn};
+use serde_json::json;
 use std::process;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -55,6 +57,70 @@ pub async fn watch_ingresses(
             }
         }
     }
+    Ok(())
+}
+
+pub async fn update_status(
+    client: Client,
+    load_balancer_ingress: Vec<IngressLoadBalancerIngress>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let ingress_api: Api<Ingress> = Api::all(client.clone());
+
+    let ingresses = match ingress_api.list(&ListParams::default()).await {
+        Ok(list) => list,
+        Err(err) => {
+            error!("Error listing ingresses: {:?}", err);
+            return Err(Box::new(err));
+        }
+    };
+
+    let filtered_ingresses: Vec<_> = ingresses
+        .into_iter()
+        .filter(|ingress| {
+            ingress.spec.as_ref().map_or(false, |spec| {
+                spec.ingress_class_name.as_deref() == Some("varnish")
+            })
+        })
+        .collect();
+
+    for ingress in filtered_ingresses {
+        if let Some(_status) = ingress.status {
+            let name = ingress.metadata.name.clone().unwrap_or_default();
+            let namespace = ingress
+                .metadata
+                .namespace
+                .clone()
+                .unwrap_or("default".to_string());
+
+            let patch = json!({
+                "status": {
+                    "loadBalancer": {
+                        "ingress": load_balancer_ingress
+                    }
+                }
+            });
+
+            debug!("Applying ingress status patch {}", patch);
+
+            let patch_params = PatchParams::apply("update-status");
+
+            let ingress_api_namespaced = Api::<Ingress>::namespaced(client.clone(), &namespace);
+
+            match ingress_api_namespaced
+                .patch_status(&name, &patch_params, &Patch::Merge(&patch))
+                .await
+            {
+                Ok(updated) => info!(
+                    "Patched ingress: [{}]",
+                    updated.metadata.name.unwrap_or_default()
+                ),
+                Err(err) => error!("Failed to patch ingress [{}]: {:?}", name, err),
+            }
+        } else {
+            warn!("Ingress [{:?}] has no status", ingress.metadata.name);
+        }
+    }
+
     Ok(())
 }
 
