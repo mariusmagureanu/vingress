@@ -4,6 +4,7 @@
 [![Rust Version](https://img.shields.io/badge/rustc-1.81-blue.svg)](https://www.rust-lang.org)
 [![Maintenance](https://img.shields.io/badge/maintenance-actively%20maintained-green.svg)](https://github.com/mariusmagureanu/vingress)
 ![License](https://img.shields.io/badge/license-BSD%202--Clause-blue.svg)
+![Audit](https://github.com/mariusmagureanu/vingress/actions/workflows/audit.yaml/badge.svg)
 
 
 
