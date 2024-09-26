@@ -1,6 +1,12 @@
 [![Build master](https://github.com/mariusmagureanu/vingress/actions/workflows/rust.yml/badge.svg)](https://github.com/mariusmagureanu/vingress/actions/workflows/rust.yml)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/varnish-ingress-controller)](https://artifacthub.io/packages/search?repo=varnish-ingress-controller)
 ![Docker Pulls](https://img.shields.io/docker/pulls/mariusm/vingress)
+[![Rust Version](https://img.shields.io/badge/rustc-1.81-blue.svg)](https://www.rust-lang.org)
+[![Maintenance](https://img.shields.io/badge/maintenance-actively%20maintained-green.svg)](https://github.com/mariusmagureanu/vingress)
+![License](https://img.shields.io/badge/license-BSD%202--Clause-blue.svg)
+
+
+
 ### Varnish Ingress controller
 Lite implementation of a Varnish Ingress controller.
 
