@@ -2,7 +2,7 @@ replicaCount: 2
 image:
   controller:
     repository: mariusm/vingress
-    tag: "0.3.0"
+    tag: "0.3.1"
   pullPolicy: Always
 serviceAccount:
   name: varnish-controller
@@ -21,7 +21,7 @@ varnish:
   defaultTtl: "120s"
 service:
   type: ClusterIP
-  port: 8081
+  port: 80
   targetPort: 6081
 pdb:
   minAvailable: 1
