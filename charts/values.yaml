@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 image:
   controller:
     repository: mariusm/vingress
@@ -23,3 +23,9 @@ service:
   type: ClusterIP
   port: 8081
   targetPort: 6081
+pdb:
+  minAvailable: 1
+hpa:
+  minReplicas: 2  
+  maxReplicas: 10 
+  targetCPUUtilizationPercentage: 60 
