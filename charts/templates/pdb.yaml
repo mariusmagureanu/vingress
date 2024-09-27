@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: varnish-ingress-pdb
+  labels:
+    app: varnish-ingress-controller
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable | default 1 }}
+  selector:
+    matchLabels:
+      app: varnish-ingress-controller
