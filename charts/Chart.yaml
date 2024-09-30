@@ -14,6 +14,8 @@ keywords:
 maintainers:
   - name: Marius Magureanu
     email: mariusmagureanu@live.dk
+sources:
+  - https://github.com/mariusmagureanu/vingress
 annotations:
   category: cluster
   artifacthub.io/category: networking
