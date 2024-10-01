@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of replicas for the deployment."
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "controller": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "Image repository for the controller."
+            },
+            "tag": {
+              "type": "string",
+              "description": "Image tag for the controller."
+            }
+          },
+          "required": [
+            "repository",
+            "tag"
+          ]
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ],
+          "description": "Image pull policy."
+        }
+      },
+      "required": [
+        "controller",
+        "pullPolicy"
+      ]
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the service account."
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMG]i$",
+              "description": "Memory request for the container."
+            },
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m$",
+              "description": "CPU request for the container."
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMG]i$",
+              "description": "Memory limit for the container."
+            },
+            "cpu": {
+              "type": "string",
+              "pattern": "^[0-9]+m?$",
+              "description": "CPU limit for the container."
+            }
+          }
+        }
+      }
+    },
+    "varnish": {
+      "type": "object",
+      "properties": {
+        "httpPort": {
+          "type": "string",
+          "description": "HTTP port for Varnish service."
+        },
+        "vclFile": {
+          "type": "string",
+          "description": "Path to the VCL file."
+        },
+        "workFolder": {
+          "type": "string",
+          "description": "Work folder for Varnish."
+        },
+        "params": {
+          "type": "string",
+          "description": "Additional Varnish parameters."
+        },
+        "defaultTtl": {
+          "type": "string",
+          "description": "Default TTL value for Varnish caching."
+        }
+      },
+      "required": [
+        "httpPort",
+        "vclFile",
+        "workFolder",
+        "defaultTtl"
+      ]
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ],
+          "description": "Service type."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Service port to expose."
+        },
+        "targetPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Target port for the service."
+        }
+      },
+      "required": [
+        "type",
+        "port",
+        "targetPort"
+      ]
+    },
+    "pdb": {
+      "type": "object",
+      "properties": {
+        "minAvailable": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum available pods for Pod Disruption Budget."
+        }
+      }
+    },
+    "hpa": {
+      "type": "object",
+      "properties": {
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum number of replicas for Horizontal Pod Autoscaler."
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of replicas for Horizontal Pod Autoscaler."
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Target CPU utilization percentage for scaling."
+        }
+      },
+      "required": [
+        "minReplicas",
+        "maxReplicas",
+        "targetCPUUtilizationPercentage"
+      ]
+    }
+  },
+  "required": [
+    "replicaCount",
+    "image",
+    "varnish",
+    "service"
+  ]
+}
