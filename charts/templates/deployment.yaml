@@ -60,3 +60,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.varnish.httpPort }}
+          topologySpreadConstraints:
+          - labelSelector:
+              matchLabels:
+                app: varnish-ingress-controller
+            maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
