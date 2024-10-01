@@ -15,6 +15,13 @@ spec:
       labels:
         app: varnish-ingress-controller
     spec:
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app: varnish-ingress-controller
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: varnish-controller
@@ -60,10 +67,3 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.varnish.httpPort }}
-          topologySpreadConstraints:
-          - labelSelector:
-              matchLabels:
-                app: varnish-ingress-controller
-            maxSkew: 1
-            topologyKey: kubernetes.io/hostname
-            whenUnsatisfiable: ScheduleAnyway
