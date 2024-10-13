@@ -130,28 +130,32 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
 }
 
 fn log_request(state: &RequestState) {
-    info!(
-        "{} {} {} | {} {}",
+    let mut log_message = format!(
+        "{} {} {} | {} {}\n",
         state.method, state.protocol, state.url, state.resp_status, state.resp_reason
     );
 
     for (key, value) in &state.req_headers {
-        info!(">> {}: {}", key, value);
+        log_message.push_str(&format!(">> {}: {}\n", key, value));
     }
 
     for (key, value) in &state.resp_headers {
-        info!("  << {}: {}", key, value);
+        log_message.push_str(&format!("  << {}: {}\n", key, value));
     }
 
     if !state.beresp_status.is_empty() && !state.beresp_reason.is_empty() {
-        info!("    <<< {} {}", state.beresp_status, state.beresp_reason);
+        log_message.push_str(&format!(
+            "    <<< {} {}\n",
+            state.beresp_status, state.beresp_reason
+        ));
         for (key, value) in &state.beresp_headers {
-            info!("    <<< {}: {}", key, value);
+            log_message.push_str(&format!("    <<< {}: {}\n", key, value));
         }
     }
+
+    info!("{}", log_message.trim_end());
 }
 
-// Clear state after logging
 impl RequestState {
     fn clear(&mut self) {
         self.method.clear();
