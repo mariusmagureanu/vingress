@@ -1,5 +1,6 @@
-use log::info;
+use log::{error, info};
 use regex::Regex;
+use serde::Serialize;
 use std::fmt;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -59,7 +60,7 @@ pub struct RegexPatterns {
 }
 
 // Struct to hold the state of the current request and backend response being parsed
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Serialize)]
 pub struct RequestState {
     pub method: String,
     pub url: String,
@@ -75,7 +76,14 @@ pub struct RequestState {
 
 pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut RequestState) {
     if line.trim().is_empty() {
-        info!("{}", state);
+        info!(
+            "{} {} {} | {} {}",
+            state.method, state.protocol, state.url, state.resp_status, state.resp_reason
+        );
+        match serde_json::to_string(state) {
+            Ok(json) => info!("{}", json),
+            Err(err) => error!("Failed to serialize request state: {}", err),
+        }
         state.clear();
     }
 
