@@ -4,7 +4,7 @@ use kube::{
     api::{Api, Patch, PatchParams, PostParams},
     Client,
 };
-use log::{debug, error, info};
+use log::{debug, error};
 use serde_json::json;
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -119,7 +119,7 @@ async fn maintain_leadership(leases: &Api<Lease>, pod_name: &str) {
     loop {
         match update_lease(leases, pod_name).await {
             Ok(_) => {
-                info!("Leadership maintained by: {}", pod_name);
+                debug!("Leadership maintained by: {}", pod_name);
             }
             Err(e) => {
                 error!("Failed to maintain leadership: {:?}", e);
