@@ -60,8 +60,6 @@ pub struct RegexPatterns {
 // Struct to hold the state of the current request and backend response being parsed
 #[derive(Default, Debug, PartialEq)]
 pub struct RequestState {
-    pub in_request: bool,
-    pub in_backend_response: bool,
     pub method: String,
     pub url: String,
     pub protocol: String,
@@ -75,10 +73,14 @@ pub struct RequestState {
 }
 
 pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut RequestState) {
+    if line.trim().is_empty() {
+        log_request(state);
+        state.clear();
+    }
+
     match () {
         _ if re_patterns.re_req_method.is_match(line) => {
             let caps = re_patterns.re_req_method.captures(line).unwrap();
-            state.in_request = true;
             state.method = caps[1].to_string();
         }
         _ if re_patterns.re_req_url.is_match(line) => {
@@ -111,7 +113,6 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
         }
         _ if re_patterns.re_beresp_status.is_match(line) => {
             let caps = re_patterns.re_beresp_status.captures(line).unwrap();
-            state.in_backend_response = true;
             state.beresp_status = caps[1].to_string();
         }
         _ if re_patterns.re_beresp_reason.is_match(line) => {
@@ -123,10 +124,6 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
             state
                 .beresp_headers
                 .push((caps[1].to_string(), caps[2].to_string()));
-        }
-        _ if line.trim() == "-   End" && state.in_request => {
-            log_request(state);
-            state.clear();
         }
         _ => {}
     }
@@ -157,8 +154,6 @@ fn log_request(state: &RequestState) {
 // Clear state after logging
 impl RequestState {
     fn clear(&mut self) {
-        self.in_request = false;
-        self.in_backend_response = false;
         self.method.clear();
         self.url.clear();
         self.protocol.clear();
