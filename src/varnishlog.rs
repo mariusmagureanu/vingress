@@ -1,5 +1,6 @@
 use log::info;
 use regex::Regex;
+use std::fmt;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
@@ -74,7 +75,7 @@ pub struct RequestState {
 
 pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut RequestState) {
     if line.trim().is_empty() {
-        log_request(state);
+        info!("{}", state);
         state.clear();
     }
 
@@ -129,33 +130,6 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
     }
 }
 
-fn log_request(state: &RequestState) {
-    let mut log_message = format!(
-        "{} {} {} | {} {}\n",
-        state.method, state.protocol, state.url, state.resp_status, state.resp_reason
-    );
-
-    for (key, value) in &state.req_headers {
-        log_message.push_str(&format!(">> {}: {}\n", key, value));
-    }
-
-    for (key, value) in &state.resp_headers {
-        log_message.push_str(&format!("  << {}: {}\n", key, value));
-    }
-
-    if !state.beresp_status.is_empty() && !state.beresp_reason.is_empty() {
-        log_message.push_str(&format!(
-            "    <<< {} {}\n",
-            state.beresp_status, state.beresp_reason
-        ));
-        for (key, value) in &state.beresp_headers {
-            log_message.push_str(&format!("    <<< {}: {}\n", key, value));
-        }
-    }
-
-    info!("{}", log_message.trim_end());
-}
-
 impl RequestState {
     fn clear(&mut self) {
         self.method.clear();
@@ -168,5 +142,32 @@ impl RequestState {
         self.beresp_status.clear();
         self.beresp_reason.clear();
         self.beresp_headers.clear();
+    }
+}
+
+impl fmt::Display for RequestState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "{} {} {} | {} {}",
+            self.method, self.protocol, self.url, self.resp_status, self.resp_reason
+        )?;
+
+        for (key, value) in &self.req_headers {
+            writeln!(f, ">> {}: {}", key, value)?;
+        }
+
+        for (key, value) in &self.resp_headers {
+            writeln!(f, "  << {}: {}", key, value)?;
+        }
+
+        if !self.beresp_status.is_empty() && !self.beresp_reason.is_empty() {
+            writeln!(f, "    <<< {} {}", self.beresp_status, self.beresp_reason)?;
+            for (key, value) in &self.beresp_headers {
+                writeln!(f, "    <<< {}: {}", key, value)?;
+            }
+        }
+
+        Ok(())
     }
 }

@@ -45,10 +45,10 @@ async fn main() {
 
     start(&v).await;
 
-    let foo = String::from(&args.work_folder);
+    let varnish_work_folder = String::from(&args.work_folder);
 
     tokio::spawn(async move {
-        varnishlog::start(&foo).await;
+        varnishlog::start(&varnish_work_folder).await;
     });
 
     let client = match Client::try_default().await {
