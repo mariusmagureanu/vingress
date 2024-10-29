@@ -1,0 +1,41 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+annotations:
+  artifacthub.io/category: networking
+  artifacthub.io/prerelease: "true"
+  artifacthub.io/signKey: "fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D\nurl:
+    https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc \n"
+  category: cluster
+apiVersion: v2
+appVersion: 0.4.0
+description: A Helm chart for deploying the Varnish Ingress Controller
+home: https://varnish-cache.org
+icon: https://varnish-cache.org/_static/varnish-bunny.png
+keywords:
+- - kubernetes
+- - helm
+- - varnish
+- - varnish-cache
+- - ingress
+maintainers:
+- - email: mariusmagureanu@live.dk
+  name: Marius Magureanu
+name: varnish-ingress-controller
+sources:
+- - https://github.com/mariusmagureanu/vingress
+version: 0.3.2
+
+...
+files:
+  varnish-ingress-controller-0.3.2.tgz: sha256:4b1ad6530d068817e190d3b8edd1e2f475c5d5e58439fd41a691653210e2888a
+-----BEGIN PGP SIGNATURE-----
+
+wsBcBAEBCgAQBQJnIPSeCRCtufDAbX8mnQAAow0IAIDriuf+fDzi/XNKSL8GTAGA
+bT1DifH4AYefGcddwKW4rb7TGbCNDxCK1dTS2porbiZS80tPpEFJ1CcsTZdrb0Gz
+a6TT9pn9HnQtzc8B2c173LZgNDwEtixdKjbNIDdyGy7hqbv4uFue2OXFP2LG0PBt
+TmUSsSUaNiDFiEZpgPXrS2Oe+4gxwvDOCih7NMe/t1+EARENAncT1BNRYmhi7ZDI
+t8lJQE7dhcSFP3gHJgB4UqjO+Wo3LVLPQHsogYrDLZH0FO5rS0bpMtEjVyzZRfd+
+ckCqBtFzD5kWZV+81tfz6xfcFmKFla50GRkDRPDz8dTXBAntKV3xUlE6FrrExu4=
+=hRAE
+-----END PGP SIGNATURE-----
