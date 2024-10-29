@@ -22,3 +22,4 @@ annotations:
   artifacthub.io/prerelease: "true"
   artifacthub.io/signKey: |
     fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D
+    url: https://github.com/mariusmagureanu/vingress/charts/key/vingress.public.asc
