@@ -23,7 +23,7 @@ pub async fn start(work_dir: &str) {
         let reader = BufReader::new(stdout);
         let mut lines = reader.lines();
 
-        let mut state = RequestState::default();
+        let mut state = VarnishLog::default();
 
         while let Some(line) = lines.next_line().await.unwrap() {
             parse_log_line(&line, &re_patterns, &mut state).await;
@@ -61,7 +61,7 @@ pub struct RegexPatterns {
 
 // Struct to hold the state of the current request and backend response being parsed
 #[derive(Default, Debug, PartialEq, Serialize)]
-pub struct RequestState {
+pub struct VarnishLog {
     pub method: String,
     pub url: String,
     pub protocol: String,
@@ -74,7 +74,7 @@ pub struct RequestState {
     pub beresp_headers: Vec<(String, String)>,
 }
 
-pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut RequestState) {
+pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut VarnishLog) {
     if line.trim().is_empty() {
         info!(
             "{} {} {} | {} {}",
@@ -138,7 +138,7 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
     }
 }
 
-impl RequestState {
+impl VarnishLog {
     fn clear(&mut self) {
         self.method.clear();
         self.url.clear();
@@ -153,7 +153,7 @@ impl RequestState {
     }
 }
 
-impl fmt::Display for RequestState {
+impl fmt::Display for VarnishLog {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
