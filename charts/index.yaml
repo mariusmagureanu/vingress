@@ -9,7 +9,7 @@ entries:
       category: cluster
     apiVersion: v2
     appVersion: 0.4.0
-    created: "2024-10-29T15:25:45.903426384+01:00"
+    created: "2024-10-29T15:41:00.807618153+01:00"
     description: A Helm chart for deploying the Varnish Ingress Controller
     digest: 12a7264fbb9482b26c00386b2cbb89150ec75596097dd9a86d6ec95e9a252d8a
     home: https://varnish-cache.org
@@ -125,4 +125,4 @@ entries:
     urls:
     - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.1.0.tgz
     version: 0.1.0
-generated: "2024-10-29T15:25:45.902920943+01:00"
+generated: "2024-10-29T15:41:00.807061916+01:00"
