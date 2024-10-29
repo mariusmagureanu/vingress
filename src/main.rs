@@ -20,6 +20,8 @@ mod ingress;
 mod leader;
 mod service;
 mod varnish;
+mod varnishlog;
+mod varnishlog_test;
 mod vcl;
 mod vcl_test;
 
@@ -42,6 +44,12 @@ async fn main() {
     };
 
     start(&v).await;
+
+    let varnish_work_folder = String::from(&args.work_folder);
+
+    tokio::spawn(async move {
+        varnishlog::start(&varnish_work_folder).await;
+    });
 
     let client = match Client::try_default().await {
         Ok(c) => c,
