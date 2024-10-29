@@ -4,12 +4,14 @@ entries:
   - annotations:
       artifacthub.io/category: networking
       artifacthub.io/prerelease: "true"
+      artifacthub.io/signKey: |
+        fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D
       category: cluster
     apiVersion: v2
     appVersion: 0.4.0
-    created: "2024-10-29T14:20:24.723228567+01:00"
+    created: "2024-10-29T15:03:05.128470426+01:00"
     description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: e7d197d2dca04bd88f488c5033395aa9c364f9d719dce07af78e2f3858062ed3
+    digest: 12a7264fbb9482b26c00386b2cbb89150ec75596097dd9a86d6ec95e9a252d8a
     home: https://varnish-cache.org
     icon: https://varnish-cache.org/_static/varnish-bunny.png
     keywords:
@@ -123,4 +125,4 @@ entries:
     urls:
     - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.1.0.tgz
     version: 0.1.0
-generated: "2024-10-29T14:20:24.722564887+01:00"
+generated: "2024-10-29T15:03:05.127823387+01:00"
