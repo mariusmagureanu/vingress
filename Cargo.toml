@@ -8,6 +8,7 @@ strip = true
 lto = true
 opt-level="z"
 codegen-units = 1
+panic = 'abort'
 
 [dependencies]
 kube = { version = "0.96.0", features = ["runtime", "derive"] }
