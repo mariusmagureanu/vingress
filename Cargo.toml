@@ -23,3 +23,4 @@ log = "0.4.22"
 chrono = "0.4.38"
 clap = {version = "4.5.11", features = ["derive","env"]}
 regex = "1.11.0"
+rocket = "0.5.1"

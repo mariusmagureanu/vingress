@@ -22,6 +22,7 @@ mod service;
 mod varnish;
 mod varnishlog;
 mod varnishlog_test;
+mod varnishstat;
 mod vcl;
 mod vcl_test;
 
@@ -47,8 +48,13 @@ async fn main() {
 
     let varnish_work_folder = String::from(&args.work_folder);
 
+    let wfc = varnish_work_folder.clone();
     tokio::spawn(async move {
         varnishlog::start(&varnish_work_folder).await;
+    });
+
+    tokio::spawn(async move {
+        varnishstat::start(&wfc).await;
     });
 
     let client = match Client::try_default().await {
