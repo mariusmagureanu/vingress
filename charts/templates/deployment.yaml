@@ -69,3 +69,4 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.varnish.httpPort }}
+            - containerPort: "8000"
