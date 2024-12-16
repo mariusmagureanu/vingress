@@ -54,7 +54,7 @@ async fn main() {
     });
 
     tokio::spawn(async move {
-        varnishstat::start(&wfc, 10).await;
+        varnishstat::start(&wfc, args.varnishstat_interval).await;
     });
 
     let client = match Client::try_default().await {

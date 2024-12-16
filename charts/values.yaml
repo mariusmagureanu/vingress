@@ -19,6 +19,7 @@ varnish:
   workFolder: "/etc/varnish"
   params: ""
   defaultTtl: "120s"
+  statInterval: "10"
 service:
   type: ClusterIP
   port: 80

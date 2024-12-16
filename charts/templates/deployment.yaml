@@ -47,6 +47,8 @@ spec:
               value: "{{ .Values.varnish.params }}"
             - name: VARNISH_DEFAULT_TTL
               value: "{{ .Values.varnish.defaultTtl }}"
+            - name: VARNISHSTAT_INTERVAL
+              value: "{{ .Values.varnish.statInterval }}"
             - name: VARNISH_VCL_SNIPPET
               valueFrom:
                 configMapKeyRef:

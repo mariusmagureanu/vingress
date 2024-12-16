@@ -10,7 +10,7 @@ pub async fn start(work_dir: &str, interval: u64) {
     let shared_stats = Arc::new(Mutex::new(String::new()));
 
     let varnishstat_task = run_varnishstat(work_dir, interval, Arc::clone(&shared_stats));
-    let server_task = start_server(shared_stats);
+    let server_task = launch_rocket(shared_stats);
 
     let (server_result, varnishstat_result) = join!(server_task, varnishstat_task);
 
@@ -26,7 +26,7 @@ pub async fn start(work_dir: &str, interval: u64) {
 async fn run_varnishstat(
     work_dir: &str,
     interval: u64,
-    shared_data: Arc<Mutex<String>>,
+    shared_stats: Arc<Mutex<String>>,
 ) -> Result<(), String> {
     let args: &[&str] = &["-n", work_dir, "-j"];
 
@@ -41,7 +41,7 @@ async fn run_varnishstat(
         match Command::new("varnishstat").args(args).output().await {
             Ok(output) if output.status.success() => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                let mut data = shared_data.lock().await;
+                let mut data = shared_stats.lock().await;
                 *data = stdout.into_owned();
             }
             Ok(output) => {
@@ -57,20 +57,20 @@ async fn run_varnishstat(
     }
 }
 
-async fn start_server(shared_data: Arc<Mutex<String>>) -> Result<Rocket<Ignite>, rocket::Error> {
+async fn launch_rocket(shared_stats: Arc<Mutex<String>>) -> Result<Rocket<Ignite>, rocket::Error> {
     info!("Starting the varnishstat exporter server");
 
     rocket::build()
-        .manage(shared_data)
+        .manage(shared_stats)
         .mount("/", routes![stats])
         .launch()
         .await
 }
 
 #[get("/")]
-async fn stats(shared_data: &State<Arc<Mutex<String>>>) -> Result<String, String> {
+async fn stats(shared_stats: &State<Arc<Mutex<String>>>) -> Result<String, String> {
     debug!("Handling index request");
 
-    let data = shared_data.lock().await;
+    let data = shared_stats.lock().await;
     Ok(data.clone())
 }
