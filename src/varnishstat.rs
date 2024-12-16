@@ -1,65 +1,76 @@
-use log::info;
-use rocket::get;
-use rocket::routes;
-use std::process::Stdio;
-use tokio::io::AsyncReadExt;
-use tokio::io::BufReader;
+use log::{debug, error, info};
+use rocket::{get, routes, Ignite, Rocket, State};
+use std::sync::Arc;
+use tokio::join;
 use tokio::process::Command;
+use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
 
-pub async fn start(work_dir: &str) {
-    let args: Vec<&str> = vec!["-n", work_dir, "-j"];
+pub async fn start(work_dir: &str, interval: u64) {
+    let shared_stats = Arc::new(Mutex::new(String::new()));
 
-    //  let _s = Arc::new(RefCell::new(String::new()));
+    let varnishstat_task = run_varnishstat(work_dir, interval, Arc::clone(&shared_stats));
+    let server_task = start_server(shared_stats);
 
-    start_server().await;
+    let (server_result, varnishstat_result) = join!(server_task, varnishstat_task);
 
-    loop {
-        run_varnishstat(&args).await;
-        sleep(Duration::from_secs(1)).await;
+    if let Err(e) = server_result {
+        error!("Failed launching Rocket: {}", e);
+    }
+
+    if let Err(e) = varnishstat_result {
+        error!("Failed launching the varnishstat loop: {}", e);
     }
 }
 
-async fn run_varnishstat(args: &Vec<&str>) {
-    info!("Running Varnishstat with the following args: {:?}", args);
+async fn run_varnishstat(
+    work_dir: &str,
+    interval: u64,
+    shared_data: Arc<Mutex<String>>,
+) -> Result<(), String> {
+    let args: &[&str] = &["-n", work_dir, "-j"];
 
-    let mut child = Command::new("varnishstat")
-        .args(args)
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to start Varnishstat");
+    info!(
+        "Started running [varnishtat -n {} -j] every [{}] seconds",
+        work_dir, interval
+    );
 
-    if let Some(stdout) = child.stdout.take() {
-        let reader = BufReader::new(stdout);
-        let mut stats = String::new();
-        let _ = reader.buffer().read_to_string(&mut stats).await;
-    };
+    loop {
+        debug!("Running varnishstat with args: {:?}", args);
+
+        match Command::new("varnishstat").args(args).output().await {
+            Ok(output) if output.status.success() => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let mut data = shared_data.lock().await;
+                *data = stdout.into_owned();
+            }
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                error!("Varnishstat error: {}", stderr);
+            }
+            Err(e) => {
+                error!("Failed to execute varnishstat: {}", e);
+            }
+        }
+
+        sleep(Duration::from_secs(interval)).await;
+    }
 }
 
-async fn start_server() {
-    info!("Starting the stat exporter server");
+async fn start_server(shared_data: Arc<Mutex<String>>) -> Result<Rocket<Ignite>, rocket::Error> {
+    info!("Starting the varnishstat exporter server");
 
-    let _ = rocket::build().mount("/", routes![index]).launch().await;
+    rocket::build()
+        .manage(shared_data)
+        .mount("/", routes![stats])
+        .launch()
+        .await
 }
 
 #[get("/")]
-async fn index() -> String {
-    info!("running index");
+async fn stats(shared_data: &State<Arc<Mutex<String>>>) -> Result<String, String> {
+    debug!("Handling index request");
 
-    let args = vec!["-n", "/etc/varnish", "-j"];
-
-    let mut child = Command::new("varnishstat")
-        .args(args)
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to start Varnishstat");
-
-    if let Some(stdout) = child.stdout.take() {
-        let reader = BufReader::new(stdout);
-        let mut stats = String::new();
-        let _ = reader.buffer().read_to_string(&mut stats).await;
-        stats
-    } else {
-        String::from("foo bar")
-    }
+    let data = shared_data.lock().await;
+    Ok(data.clone())
 }
