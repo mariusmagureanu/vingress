@@ -14,8 +14,8 @@ spec:
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
       name: http
-    - port: "8000"
-      targetPort: "8000"
+    - port: {{ .Values.statistics.port }} 
+      targetPort: {{ .Values.statistics.port }}
       protocol: TCP
       name: varnishstat
 

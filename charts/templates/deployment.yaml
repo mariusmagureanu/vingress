@@ -48,7 +48,7 @@ spec:
             - name: VARNISH_DEFAULT_TTL
               value: "{{ .Values.varnish.defaultTtl }}"
             - name: VARNISHSTAT_INTERVAL
-              value: "{{ .Values.varnish.statInterval }}"
+              value: "{{ .Values.statistics.interval }}"
             - name: VARNISH_VCL_SNIPPET
               valueFrom:
                 configMapKeyRef:
@@ -69,4 +69,4 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.varnish.httpPort }}
-            - containerPort: "8000"
+            - containerPort: {{ .Values.statistics.port }}

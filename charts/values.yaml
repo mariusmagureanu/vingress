@@ -30,3 +30,6 @@ hpa:
   minReplicas: 2  
   maxReplicas: 10 
   targetCPUUtilizationPercentage: 60 
+statistics:
+  interval: "10"
+  port: 8000
