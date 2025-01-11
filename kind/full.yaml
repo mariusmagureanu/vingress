@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: full
+  labels:
+    environment: full-ingress-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: full-v1
+  namespace: full
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: full-v1
+  template:
+    metadata:
+      labels:
+        app: full-v1
+    spec:
+      containers:
+        - name: full-v1
+          image: nginx:1.27-bookworm
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: full-v1-svc
+  namespace: full
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: full-v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: full-v2
+  namespace: full
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: full-v2
+  template:
+    metadata:
+      labels:
+        app: full-v2
+    spec:
+      containers:
+        - name: full-v2
+          image: nginx:1.27-bookworm
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: full-v2-svc
+  namespace: full
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: full-v2
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: full-ingress
+  namespace: full
+  labels:
+    kubernetes.io/ingress: varnish
+spec:
+  ingressClassName: varnish
+  rules:
+    - host: full.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: full-v1-svc
+                port:
+                  number: 80
+          - path: /v2
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: full-v2-svc
+                port:
+                  number: 80

@@ -1,15 +1,31 @@
 use futures::AsyncReadExt;
-use log::{debug, error, info};
+use log::{error, info};
+use opentelemetry::metrics::Meter;
+use opentelemetry::KeyValue;
 use rocket::{get, routes, Ignite, Rocket, State};
-use std::io::BufWriter;
+use serde::Deserialize;
 use std::sync::Arc;
+use std::{collections::HashMap, io::BufWriter};
 use tokio::join;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
-use opentelemetry::{metrics::Counter, metrics::MeterProvider, KeyValue};
+use opentelemetry::metrics::MeterProvider;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use prometheus::{Encoder, Registry, TextEncoder};
+
+#[derive(Deserialize, Debug)]
+struct Stats {
+    counters: HashMap<String, VarnishCounter>,
+}
+
+#[derive(Debug, Deserialize)]
+struct VarnishCounter {
+    description: String,
+    flag: String,
+    format: String,
+    value: u64,
+}
 
 pub async fn start(work_dir: &str) {
     let registry = prometheus::Registry::new();
@@ -21,17 +37,12 @@ pub async fn start(work_dir: &str) {
     let provider = SdkMeterProvider::builder().with_reader(exporter).build();
     let meter = provider.meter("varnish");
 
-    let main_counter = meter
-        .u64_counter("main_counter")
-        .with_description("Varnish main.* counters")
-        .build();
-
     let varnishstat_task = run_varnishstat(work_dir);
 
-    let shared_stats = Arc::new(Mutex::new(main_counter));
+    let shared_meter = Arc::new(Mutex::new(meter));
     let shared_stats_registry = Arc::new(Mutex::new(registry));
 
-    let server_task = launch_rocket(shared_stats, shared_stats_registry);
+    let server_task = launch_rocket(shared_meter, shared_stats_registry);
 
     let (server_result, varnishstat_result) = join!(server_task, varnishstat_task);
 
@@ -45,11 +56,19 @@ pub async fn start(work_dir: &str) {
 }
 
 async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
-    let args: &[&str] = &["-n", work_dir, "-j"];
+    let args: &[&str] = &[
+        "-n",
+        work_dir,
+        "-f",
+        "MAIN.cache_hit",
+        "-f",
+        "MAIN.cache_miss",
+        "-f",
+        "MAIN.uptime",
+        "-j",
+    ];
 
-    info!("Running [varnishtat -n {} -j] ", work_dir);
-
-    debug!("Running varnishstat with args: {:?}", args);
+    info!("Running varnishstat with args: {:?}", args);
 
     match Command::new("varnishstat").args(args).output().await {
         Ok(output) if output.status.success() => {
@@ -68,13 +87,13 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
 }
 
 async fn launch_rocket(
-    shared_stats: Arc<Mutex<Counter<u64>>>,
+    shared_meter: Arc<Mutex<Meter>>,
     shared_stats_registry: Arc<Mutex<Registry>>,
 ) -> Result<Rocket<Ignite>, rocket::Error> {
     info!("Starting the varnishstat exporter server");
 
     rocket::build()
-        .manage(shared_stats)
+        .manage(shared_meter)
         .manage(shared_stats_registry)
         .mount("/", routes![metrics])
         .launch()
@@ -83,13 +102,24 @@ async fn launch_rocket(
 
 #[get("/metrics")]
 async fn metrics(
-    main_counter: &State<Arc<Mutex<Counter<u64>>>>,
+    meter: &State<Arc<Mutex<Meter>>>,
     registry: &State<Arc<Mutex<Registry>>>,
 ) -> Result<String, String> {
-    main_counter
+    let out = run_varnishstat("/etc/varnish").await;
+
+    let vs: Stats = serde_json::from_str(&out.unwrap()).unwrap();
+
+    let cache_counter = meter
         .lock()
         .await
-        .add(100, &[KeyValue::new("key", "value")]);
+        .u64_gauge("main_counter")
+        .with_description("Varnish main.* counters")
+        .build();
+
+    for (k, v) in vs.counters {
+        let countet_label = &[KeyValue::new("main", k)];
+        cache_counter.record(v.value, countet_label);
+    }
 
     let encoder = TextEncoder::new();
     let metric_families = registry.lock().await.gather();
