@@ -19,7 +19,6 @@ varnish:
   workFolder: "/etc/varnish"
   params: ""
   defaultTtl: "120s"
-  statInterval: "10"
 service:
   type: ClusterIP
   port: 80
@@ -31,5 +30,4 @@ hpa:
   maxReplicas: 10 
   targetCPUUtilizationPercentage: 60 
 statistics:
-  interval: "10"
-  port: 8000
+  port: 8081

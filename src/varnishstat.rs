@@ -21,9 +21,6 @@ struct Stats {
 
 #[derive(Debug, Deserialize)]
 struct VarnishCounter {
-    description: String,
-    flag: String,
-    format: String,
     value: u64,
 }
 

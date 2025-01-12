@@ -17,7 +17,7 @@ data:
     scrape_configs:
       - job_name: 'varnish-metrics'
         static_configs:
-          - targets: [varnish-ingress-service.vingress.svc.cluster.local:8000]
+          - targets: [varnish-ingress-service.vingress.svc.cluster.local:8081]
 ---
 apiVersion: apps/v1
 kind: Deployment

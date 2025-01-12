@@ -97,12 +97,4 @@ pub struct Args {
         help = "The namespace where Varnish Ingress Controller operates in"
     )]
     pub namespace: String,
-
-    #[arg(
-        long,
-        env = "VARNISHSTAT_INTERVAL",
-        default_value = "0",
-        help = "The interval at which varnishstat should be run. A value of 0 disables it."
-    )]
-    pub varnishstat_interval: u64,
 }
