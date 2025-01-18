@@ -77,9 +77,7 @@ pub async fn update_status(
     let filtered_ingresses: Vec<_> = ingresses
         .into_iter()
         .filter(|ingress| {
-            ingress.spec.as_ref().map_or(false, |spec| {
-                spec.ingress_class_name.as_deref() == Some("varnish")
-            })
+            ingress.spec.clone().unwrap().ingress_class_name.as_deref() == Some("varnish")
         })
         .collect();
 
