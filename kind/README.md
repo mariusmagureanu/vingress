@@ -1,20 +1,20 @@
-#### KinD
+### KinD
 
 If you don't have a test cluster at hand, you're welcome to use [kind](https://kind.sigs.k8s.io/).
 
-Install KinD:
+**Install KinD**:
 
 ```sh
-$ go install sigs.k8s.io/kind@v0.23.0 
+$ go install sigs.k8s.io/kind@v0.26.0 
 ```
 
-Create the cluster:
+**Create the cluster**:
 
 ```sh
 $ kind create cluster --config kind/cluster.yaml 
 ```
 
-Create some test infra: pods, services, ingresses ..etc
+**Create some test infra: pods, services, ingresses ..etc**:
 
 ```sh
 $ kubectl apply -f media.yaml
@@ -48,7 +48,7 @@ $ curl 127.1:6081/smp -H "Host: smp.example.com"
 
 ---
 
-#### Grafana 
+### Grafana 
 
 The ``varnish-ingress-controller`` exposes a couple of varnishstat [counters](https://varnish-cache.org/docs/trunk/reference/varnish-counters.html#main-main-counters):
 
@@ -77,3 +77,26 @@ Head over to ```http://localhost:3000``` in your browser, log into Grafana and c
 ```yaml
 http://prometheus.monitoring.svc.cluster.local:9090
 ```
+
+--- 
+
+### Development
+
+With KinD it is possible to load local built Docker images into the cluster. This way it's rather convenient to test while under development.
+
+However, the ``varnish-ingress-controller`` deployment needs a couple of tweaks:
+
+```shell
+$ kubectl -n vingress edit deploy/varnish-ingress-controller
+```
+
+Edit the ``image`` and ``imagePullPolicy`` as follows:
+
+```yaml
+image: vingress-dev:latest
+imagePullPolicy: Never
+```
+
+Every time new code updates should be run and tested, run the ``test.sh`` shell script from the root of the repository.
+
+The script builds a new Docker image, loads it into the cluster and restarts the ``varnish-ingress-controller``.
