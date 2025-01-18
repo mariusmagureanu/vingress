@@ -126,7 +126,7 @@ Make sure you're connected to a Kubernetes cluster and run the following:
 
 ```sh
 $ helm package chart/
-$ helm upgrade varnish-ingress-controller --install --namespace <your-namespace> --create-namespace ./varnish-ingress-controller-0.3.1.tgz -f chart/values.yaml
+$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.3.2.tgz -f charts/values.yaml
 ```
 
 Update the spec of your Ingress(es) with the following requirements:
@@ -149,8 +149,8 @@ For quick testing and shorter feedback loops it's easier to just port forward it
 Example:
 
 ```
-$ kubectl -n <your-namespace> port-forward svc/varnish-ingress-service 8081:8081
-$ curl http://127.1:8081/foo -H "Host: foo.bar.com" -v
+$ kubectl -n vingress port-forward svc/varnish-ingress-service 6081:80
+$ curl http://127.1:6081/foo -H "Host: foo.bar.com" -v
 ```
 
 ---
@@ -174,7 +174,7 @@ Whenever these 2 mentioned fields in the Configmap are updated - the following h
 Example: 
 
 ```sh
-$ kubectl -n <your-namespace> get cm/varnish-vcl -o yaml
+$ kubectl -n vingress get cm/varnish-vcl -o yaml
 ```
 
 ```yaml
