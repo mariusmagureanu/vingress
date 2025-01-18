@@ -1,4 +1,3 @@
-use futures::AsyncReadExt;
 use log::{error, info};
 use opentelemetry::metrics::Meter;
 use opentelemetry::KeyValue;
@@ -14,12 +13,12 @@ use opentelemetry::metrics::MeterProvider;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use prometheus::{Encoder, Registry, TextEncoder};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct Stats {
     counters: HashMap<String, VarnishCounter>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct VarnishCounter {
     value: u64,
 }
@@ -116,30 +115,50 @@ async fn metrics(
     meter: &State<Arc<Mutex<Meter>>>,
     registry: &State<Arc<Mutex<Registry>>>,
 ) -> Result<String, String> {
-    let out = run_varnishstat("/etc/varnish").await;
+    let varnish_output = match run_varnishstat("/etc/varnish").await {
+        Ok(s) => s,
+        Err(e) => {
+            error!("failed to run varnishstat: {}", e);
+            return Err(e);
+        }
+    };
 
-    let vs: Stats = serde_json::from_str(&out.unwrap()).unwrap();
+    let varnish_stats: Stats = match serde_json::from_str(&varnish_output) {
+        Ok(s) => s,
+        Err(e) => {
+            error!("failed to Deserialize varnishstats: {}", e);
+            return Err(e.to_string());
+        }
+    };
 
-    let cache_counter = meter
-        .lock()
-        .await
+    let meter_guard = meter.lock().await;
+    let cache_counter = meter_guard
         .u64_gauge("main_counter")
         .with_description("Varnish main.* counters")
         .build();
 
-    for (k, v) in vs.counters {
-        let countet_label = &[KeyValue::new("main", k)];
-        cache_counter.record(v.value, countet_label);
+    for (key, value) in varnish_stats.counters {
+        let label = &[KeyValue::new("main", key)];
+        cache_counter.record(value.value, label);
     }
+    drop(meter_guard); // Release the lock early.
 
     let encoder = TextEncoder::new();
-    let metric_families = registry.lock().await.gather();
-    let mut result = BufWriter::new(vec![]);
-    let _ = encoder.encode(&metric_families, &mut result);
+    let registry_guard = registry.lock().await;
+    let metric_families = registry_guard.gather();
+    drop(registry_guard); // Release the lock early.
 
-    let mut out = String::with_capacity(result.buffer().len());
+    let mut buffer = BufWriter::new(Vec::new());
+    if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
+        error!("failed to encode metrics: {}", e.to_string());
+        return Err(e.to_string());
+    }
 
-    result.buffer().read_to_string(&mut out).await.unwrap();
-
-    Ok(out)
+    match String::from_utf8(buffer.into_inner().unwrap_or_default()) {
+        Ok(r) => Ok(r),
+        Err(e) => {
+            error!("failed to convert metrics: {}", e);
+            return Err(e.to_string());
+        }
+    }
 }
