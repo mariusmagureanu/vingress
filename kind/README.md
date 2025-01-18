@@ -46,6 +46,7 @@ $ curl 127.1:6081/v2 -H "Host: media.example.com"
 $ curl 127.1:6081/smp -H "Host: smp.example.com" 
 ```
 
+---
 
 #### Grafana 
 
@@ -63,7 +64,7 @@ The ``varnish-ingress-controller`` exposes a couple of varnishstat [counters](ht
 * MAIN.uptime 
 
 
-If the ``grafana.yaml`` manifest has been applied, then run the following to expose the running the Grafana instance:
+If the ``grafana.yaml`` manifest has been applied, run the following to expose the running the Grafana instance:
 
 ```shell
 $ kubectl -n monitoring port-forward svc/grafana 3000:3000
