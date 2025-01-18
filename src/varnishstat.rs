@@ -158,7 +158,7 @@ async fn metrics(
         Ok(r) => Ok(r),
         Err(e) => {
             error!("failed to convert metrics: {}", e);
-            return Err(e.to_string());
+            Err(e.to_string())
         }
     }
 }
