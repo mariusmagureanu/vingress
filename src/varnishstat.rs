@@ -5,7 +5,6 @@ use rocket::{get, routes, Ignite, Rocket, State};
 use serde::Deserialize;
 use std::sync::Arc;
 use std::{collections::HashMap, io::BufWriter};
-use tokio::join;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
@@ -33,21 +32,13 @@ pub async fn start(work_dir: &str) {
     let provider = SdkMeterProvider::builder().with_reader(exporter).build();
     let meter = provider.meter("varnish");
 
-    let varnishstat_task = run_varnishstat(work_dir);
-
     let shared_meter = Arc::new(Mutex::new(meter));
     let shared_stats_registry = Arc::new(Mutex::new(registry));
 
-    let server_task = launch_rocket(shared_meter, shared_stats_registry);
+    let server_task = launch_rocket(shared_meter, shared_stats_registry, work_dir);
 
-    let (server_result, varnishstat_result) = join!(server_task, varnishstat_task);
-
-    if let Err(e) = server_result {
-        error!("Failed launching Rocket: {}", e);
-    }
-
-    if let Err(e) = varnishstat_result {
-        error!("Failed launching the varnishstat loop: {}", e);
+    if let Err(e) = server_task.await {
+        error!("Could not start Rocket: {:?}", e)
     }
 }
 
@@ -99,12 +90,14 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
 async fn launch_rocket(
     shared_meter: Arc<Mutex<Meter>>,
     shared_stats_registry: Arc<Mutex<Registry>>,
+    shared_work_dir: &str,
 ) -> Result<Rocket<Ignite>, rocket::Error> {
     info!("Starting the varnishstat exporter server");
 
     rocket::build()
         .manage(shared_meter)
         .manage(shared_stats_registry)
+        .manage(String::from(shared_work_dir))
         .mount("/", routes![metrics])
         .launch()
         .await
@@ -114,8 +107,9 @@ async fn launch_rocket(
 async fn metrics(
     meter: &State<Arc<Mutex<Meter>>>,
     registry: &State<Arc<Mutex<Registry>>>,
+    work_dir: &State<String>,
 ) -> Result<String, String> {
-    let varnish_output = match run_varnishstat("/etc/varnish").await {
+    let varnish_output = match run_varnishstat(work_dir).await {
         Ok(s) => s,
         Err(e) => {
             error!("failed to run varnishstat: {}", e);
