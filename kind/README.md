@@ -100,3 +100,16 @@ imagePullPolicy: Never
 Every time new code updates should be run and tested, run the ``test.sh`` shell script from the root of the repository.
 
 The script builds a new Docker image, loads it into the cluster and restarts the ``varnish-ingress-controller``.
+
+--- 
+
+As you keep loading images into the cluster, its storage may run out. It's a good idea
+you prune unused images.
+
+> [!NOTE]
+> This affects all your docker images
+
+
+```sh
+docker system prune -a --volumes
+```
