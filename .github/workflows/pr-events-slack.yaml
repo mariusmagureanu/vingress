@@ -5,6 +5,8 @@ on:
     types: [submitted]
   pull_request:
     types: [synchronize]
+  check_suite:
+    types: [completed]
 
 jobs:
   notify-slack:
@@ -17,6 +19,8 @@ jobs:
             echo "MESSAGE_TYPE=approved" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.action }}" == "synchronize" ]]; then
             echo "MESSAGE_TYPE=pushed" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "check_suite" && "${{ github.event.check_suite.conclusion }}" == "failure" ]]; then
+            echo "MESSAGE_TYPE=failed_checks" >> $GITHUB_ENV
           else
             echo "MESSAGE_TYPE=unknown" >> $GITHUB_ENV
           fi
@@ -25,9 +29,11 @@ jobs:
         if: env.MESSAGE_TYPE != 'unknown' && github.event.pull_request.base.ref == 'master'
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: 'C075LDZRLER' 
+          channel-id: 'C075LDZRLER'  
           slack-message: |
-            ${{ env.MESSAGE_TYPE == 'approved' && '✅ *PR Approved!*' || '📌 *New Push to PR!*' }}
+            ${{ env.MESSAGE_TYPE == 'approved' && '✅ *PR Approved!*' || 
+                env.MESSAGE_TYPE == 'pushed' && '📌 *New Push to PR!*' || 
+                env.MESSAGE_TYPE == 'failed_checks' && '❌ *PR Checks Failed!*' }}
             *Repository:* ${{ github.repository }}
             *PR Title:* ${{ github.event.pull_request.title }}
             *PR Link:* ${{ github.event.pull_request.html_url }}
