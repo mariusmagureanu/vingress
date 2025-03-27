@@ -1,15 +1,15 @@
 use futures::{StreamExt, TryStreamExt};
-use k8s_openapi::{api::core::v1::ConfigMap, Metadata};
+use k8s_openapi::{Metadata, api::core::v1::ConfigMap};
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
-    runtime::{watcher, WatchStreamExt},
     Api, Client,
+    runtime::{WatchStreamExt, watcher},
 };
 use log::{error, info, warn};
 use std::process;
 use std::{cell::RefCell, rc::Rc};
 
-use crate::vcl::{reload, update, Vcl};
+use crate::vcl::{Vcl, reload, update};
 
 const CONFIGMAP_NAME: &str = "varnish-vcl";
 

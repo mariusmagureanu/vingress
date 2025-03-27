@@ -1,7 +1,7 @@
 use log::{error, info};
-use opentelemetry::metrics::Meter;
 use opentelemetry::KeyValue;
-use rocket::{get, routes, Ignite, Rocket, State};
+use opentelemetry::metrics::Meter;
+use rocket::{Ignite, Rocket, State, get, routes};
 use serde::Deserialize;
 use std::sync::Arc;
 use std::{collections::HashMap, io::BufWriter};

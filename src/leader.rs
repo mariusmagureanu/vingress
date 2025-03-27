@@ -1,15 +1,15 @@
 use chrono::{SecondsFormat, Utc};
 use k8s_openapi::api::coordination::v1::Lease;
 use kube::{
-    api::{Api, Patch, PatchParams, PostParams},
     Client,
+    api::{Api, Patch, PatchParams, PostParams},
 };
 use log::{debug, error};
 use serde_json::json;
 use std::env;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::time::{Duration, sleep};
 
 const LEASE_NAME: &str = "vingress-leader-lock";
 

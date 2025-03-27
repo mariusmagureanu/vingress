@@ -1,5 +1,5 @@
 use crate::configmap::{SNIPPET_KEY, VCL_RECV_SNIPPET_KEY};
-use handlebars::{to_json, Handlebars};
+use handlebars::{Handlebars, to_json};
 use log::error;
 use log::info;
 use serde::Serialize;

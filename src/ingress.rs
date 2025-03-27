@@ -1,11 +1,11 @@
-use crate::vcl::{reload, update, Backend, Vcl};
+use crate::vcl::{Backend, Vcl, reload, update};
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::networking::v1::{Ingress, IngressLoadBalancerIngress};
 use kube::api::{ListParams, Patch, PatchParams};
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
-    runtime::{watcher, WatchStreamExt},
     Api, Client,
+    runtime::{WatchStreamExt, watcher},
 };
 use log::{debug, error, info, warn};
 use serde_json::json;

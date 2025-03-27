@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::varnishlog::{get_regex_patterns, parse_log_line, VarnishLog};
+    use crate::varnishlog::{VarnishLog, get_regex_patterns, parse_log_line};
 
     #[tokio::test]
     async fn test_parse_request() {

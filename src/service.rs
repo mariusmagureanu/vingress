@@ -7,12 +7,12 @@ use std::collections::HashSet;
 use crate::ingress::update_status;
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
-    runtime::{watcher, WatchStreamExt},
     Api, Client,
+    runtime::{WatchStreamExt, watcher},
 };
 use log::{error, info};
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 const POD_LABELS: &str = "app=varnish-ingress-controller";
 const SVC_EXTERNAL_NAME: &str = "ExternalName";
