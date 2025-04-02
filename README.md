@@ -2,7 +2,7 @@
 ![Audit](https://github.com/mariusmagureanu/vingress/actions/workflows/audit.yaml/badge.svg)
 ![Clippy Lint](https://github.com/mariusmagureanu/vingress/actions/workflows/clippy.yaml/badge.svg)
 ![Docker Pulls](https://img.shields.io/docker/pulls/mariusm/vingress)
-[![Rust Version](https://img.shields.io/badge/rustc-1.83-blue.svg)](https://www.rust-lang.org)
+[![Rust Version](https://img.shields.io/badge/rustc-1.85-blue.svg)](https://www.rust-lang.org)
 [![dependency status](https://deps.rs/repo/github/mariusmagureanu/vingress/status.svg)](https://deps.rs/repo/github/mariusmagureanu/vingress)
 [![Maintenance](https://img.shields.io/badge/maintenance-actively%20maintained-green.svg)](https://github.com/mariusmagureanu/vingress)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/varnish-ingress-controller)](https://artifacthub.io/packages/search?repo=varnish-ingress-controller)
@@ -126,7 +126,7 @@ Make sure you're connected to a Kubernetes cluster and run the following:
 
 ```sh
 $ helm package chart/
-$ helm upgrade varnish-ingress-controller --install --namespace <your-namespace> --create-namespace ./varnish-ingress-controller-0.3.1.tgz -f chart/values.yaml
+$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.4.0.tgz -f charts/values.yaml
 ```
 
 Update the spec of your Ingress(es) with the following requirements:
@@ -149,8 +149,8 @@ For quick testing and shorter feedback loops it's easier to just port forward it
 Example:
 
 ```
-$ kubectl -n <your-namespace> port-forward svc/varnish-ingress-service 8081:8081
-$ curl http://127.1:8081/foo -H "Host: foo.bar.com" -v
+$ kubectl -n vingress port-forward svc/varnish-ingress-service 6081:80
+$ curl http://127.1:6081/foo -H "Host: foo.bar.com" -v
 ```
 
 ---
@@ -174,7 +174,7 @@ Whenever these 2 mentioned fields in the Configmap are updated - the following h
 Example: 
 
 ```sh
-$ kubectl -n <your-namespace> get cm/varnish-vcl -o yaml
+$ kubectl -n vingress get cm/varnish-vcl -o yaml
 ```
 
 ```yaml

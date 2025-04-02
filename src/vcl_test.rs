@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 
-    use crate::vcl::{update, Backend, Vcl};
+    use crate::vcl::{Backend, Vcl, update};
     use std::{fs::File, io::Read};
 
     #[test]

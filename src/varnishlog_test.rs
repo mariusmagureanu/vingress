@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::varnishlog::{get_regex_patterns, parse_log_line, VarnishLog};
+    use crate::varnishlog::{VarnishLog, get_regex_patterns, parse_log_line};
 
     #[tokio::test]
     async fn test_parse_request() {
@@ -33,7 +33,7 @@ mod test {
 
         for line in input_lines.lines() {
             let line = line.trim();
-            parse_log_line(&line, &re_patterns, &mut state).await;
+            parse_log_line(line, &re_patterns, &mut state).await;
         }
 
         let expected_request = VarnishLog {
@@ -123,7 +123,7 @@ mod test {
 
         for line in input_lines.lines() {
             let line = line.trim();
-            parse_log_line(&line, &re_patterns, &mut state).await;
+            parse_log_line(line, &re_patterns, &mut state).await;
         }
 
         let expected_request = VarnishLog {

@@ -1,5 +1,6 @@
 name: Security Audit
-on: [push, pull_request]
+on: 
+  - workflow_dispatch
 jobs:
   audit:
     runs-on: ubuntu-latest

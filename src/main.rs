@@ -1,17 +1,18 @@
 use clap::Parser;
 use cli::Args;
 use configmap::watch_configmap;
+use env_logger::Env;
 use ingress::watch_ingresses;
 use kube::Client;
 use leader::run_leader_election;
 use log::error;
 use service::watch_service;
 use std::process;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::{cell::RefCell, rc::Rc};
 use tokio::join;
-use varnish::{start, Varnish};
+use varnish::{Varnish, start};
 use vcl::Vcl;
 
 mod cli;
@@ -22,6 +23,7 @@ mod service;
 mod varnish;
 mod varnishlog;
 mod varnishlog_test;
+mod varnishstat;
 mod vcl;
 mod vcl_test;
 
@@ -29,9 +31,7 @@ mod vcl_test;
 async fn main() {
     let args = Args::parse();
 
-    std::env::set_var("RUST_LOG", args.log_level);
-
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or(args.log_level)).init();
 
     let v = Varnish {
         cmd: "varnishd",
@@ -47,8 +47,13 @@ async fn main() {
 
     let varnish_work_folder = String::from(&args.work_folder);
 
+    let wfc = varnish_work_folder.clone();
     tokio::spawn(async move {
         varnishlog::start(&varnish_work_folder).await;
+    });
+
+    tokio::spawn(async move {
+        varnishstat::start(&wfc).await;
     });
 
     let client = match Client::try_default().await {

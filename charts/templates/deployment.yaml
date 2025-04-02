@@ -31,6 +31,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name 
+            - name: ROCKET_PORT
+              value: "{{ .Values.statistics.port }}"
+            - name: ROCKET_ADDRESS
+              value: "0.0.0.0"
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
             - name: LOG_LEVEL
@@ -67,3 +71,4 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.varnish.httpPort }}
+            - containerPort: {{ .Values.statistics.port }}

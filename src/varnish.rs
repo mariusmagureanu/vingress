@@ -5,7 +5,7 @@ use std::process::Stdio;
 
 use std::process::ExitStatus;
 use tokio::process::Command;
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 pub struct Varnish<'a> {
     pub cmd: &'a str,

@@ -6,7 +6,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY template/vcl.hbs template/vcl.hbs
 
-RUN cargo build --release
+RUN cargo b
 
 
 FROM varnish:7.6-alpine AS release
@@ -14,13 +14,13 @@ LABEL maintainers="Varnish-Cache Friends"
 
 USER root
 WORKDIR controller
-
+RUN apk add curl
 RUN chown -R varnish:varnish /etc/varnish
 
 USER varnish
 
 COPY --from=builder ./template/vcl.hbs template/vcl.hbs
-COPY --from=builder ./target/release/vingress vingress-bin
+COPY --from=builder ./target/debug/vingress vingress-bin
 
 ENTRYPOINT ["./vingress-bin"] 
 CMD []

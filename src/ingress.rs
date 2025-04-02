@@ -1,16 +1,18 @@
-use crate::vcl::{reload, update, Backend, Vcl};
+use crate::vcl::{Backend, Vcl, reload, update};
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::networking::v1::{Ingress, IngressLoadBalancerIngress};
 use kube::api::{ListParams, Patch, PatchParams};
 use kube::runtime::watcher::Error as WatcherError;
 use kube::{
-    runtime::{watcher, WatchStreamExt},
     Api, Client,
+    runtime::{WatchStreamExt, watcher},
 };
 use log::{debug, error, info, warn};
 use serde_json::json;
 use std::process;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+const VARNISH_CLASS: &str = "varnish";
 
 pub async fn watch_ingresses(
     client: Client,
@@ -66,58 +68,55 @@ pub async fn update_status(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ingress_api: Api<Ingress> = Api::all(client.clone());
 
-    let ingresses = match ingress_api.list(&ListParams::default()).await {
-        Ok(list) => list,
-        Err(err) => {
+    let ingresses = ingress_api
+        .list(&ListParams::default())
+        .await
+        .map_err(|err| {
             error!("Error listing ingresses: {:?}", err);
-            return Err(Box::new(err));
+            err
+        })?;
+
+    for ingress in ingresses.into_iter().filter(|ingress| {
+        ingress
+            .spec
+            .as_ref()
+            .and_then(|spec| spec.ingress_class_name.as_deref())
+            == Some(VARNISH_CLASS)
+    }) {
+        let name = ingress.metadata.name.as_deref().unwrap_or_default();
+        let namespace = ingress.metadata.namespace.as_deref().unwrap_or("default");
+
+        if ingress.status.is_none() {
+            warn!(
+                "Ingress [{}] in namespace [{}] has no status",
+                name, namespace
+            );
+            continue;
         }
-    };
 
-    let filtered_ingresses: Vec<_> = ingresses
-        .into_iter()
-        .filter(|ingress| {
-            ingress.spec.as_ref().map_or(false, |spec| {
-                spec.ingress_class_name.as_deref() == Some("varnish")
-            })
-        })
-        .collect();
-
-    for ingress in filtered_ingresses {
-        if let Some(_status) = ingress.status {
-            let name = ingress.metadata.name.clone().unwrap_or_default();
-            let namespace = ingress
-                .metadata
-                .namespace
-                .clone()
-                .unwrap_or("default".to_string());
-
-            let patch = json!({
-                "status": {
-                    "loadBalancer": {
-                        "ingress": load_balancer_ingress
-                    }
+        let patch = json!({
+            "status": {
+                "loadBalancer": {
+                    "ingress": load_balancer_ingress
                 }
-            });
-
-            debug!("Applying ingress status patch {}", patch);
-
-            let patch_params = PatchParams::apply("update-status");
-
-            let ingress_api_namespaced = Api::<Ingress>::namespaced(client.clone(), &namespace);
-
-            match ingress_api_namespaced
-                .patch_status(&name, &patch_params, &Patch::Merge(&patch))
-                .await
-            {
-                Ok(updated) => info!(
-                    "Patched ingress: [{}]",
-                    updated.metadata.name.unwrap_or_default()
-                ),
-                Err(err) => error!("Failed to patch ingress [{}]: {:?}", name, err),
             }
-        } else {
-            warn!("Ingress [{:?}] has no status", ingress.metadata.name);
+        });
+
+        debug!("Applying ingress status patch {}", patch);
+
+        let patch_params = PatchParams::apply("update-status");
+
+        let ingress_api_namespaced = Api::<Ingress>::namespaced(client.clone(), namespace);
+
+        match ingress_api_namespaced
+            .patch_status(name, &patch_params, &Patch::Merge(&patch))
+            .await
+        {
+            Ok(updated) => info!(
+                "Patched ingress: [{}]",
+                updated.metadata.name.unwrap_or_default()
+            ),
+            Err(err) => error!("Failed to patch ingress [{}]: {:?}", name, err),
         }
     }
 
