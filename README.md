@@ -126,7 +126,7 @@ Make sure you're connected to a Kubernetes cluster and run the following:
 
 ```sh
 $ helm package chart/
-$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.3.2.tgz -f charts/values.yaml
+$ helm upgrade varnish-ingress-controller --install --namespace vingress --create-namespace ./varnish-ingress-controller-0.4.0.tgz -f charts/values.yaml
 ```
 
 Update the spec of your Ingress(es) with the following requirements:
