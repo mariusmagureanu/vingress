@@ -144,7 +144,7 @@ async fn metrics(
 
     let mut buffer = BufWriter::new(Vec::new());
     if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
-        error!("failed to encode metrics: {}", e.to_string());
+        error!("failed to encode metrics: {}", e);
         return Err(e.to_string());
     }
 
