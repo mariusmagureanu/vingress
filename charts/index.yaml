@@ -1,129 +1,160 @@
 apiVersion: v1
 entries:
   varnish-ingress-controller:
-  - annotations:
-      artifacthub.io/category: networking
-      artifacthub.io/prerelease: "true"
-      artifacthub.io/signKey: "fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D\nurl:
-        https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc
-        \n"
-      category: cluster
-    apiVersion: v2
-    appVersion: 0.4.0
-    created: "2024-10-29T16:03:35.169938614+01:00"
-    description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: 4b1ad6530d068817e190d3b8edd1e2f475c5d5e58439fd41a691653210e2888a
-    home: https://varnish-cache.org
-    icon: https://varnish-cache.org/_static/varnish-bunny.png
-    keywords:
-    - kubernetes
-    - helm
-    - varnish
-    - varnish-cache
-    - ingress
-    maintainers:
-    - email: mariusmagureanu@live.dk
-      name: Marius Magureanu
-    name: varnish-ingress-controller
-    sources:
-    - https://github.com/mariusmagureanu/vingress
-    urls:
-    - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.2.tgz
-    version: 0.3.2
-  - annotations:
-      artifacthub.io/category: networking
-      artifacthub.io/prerelease: "true"
-      category: cluster
-    apiVersion: v2
-    appVersion: 0.3.1
-    created: "2024-09-27T12:17:52.994266519+02:00"
-    description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: c5d53efa0502634d888eee0a124d0f6547ab350967823374a1a6b37c5d83d08a
-    home: https://varnish-cache.org
-    icon: https://varnish-cache.org/_static/varnish-bunny.png
-    keywords:
-    - kubernetes
-    - helm
-    - varnish
-    - varnish-cache
-    - ingress
-    maintainers:
-    - email: mariusmagureanu@live.dk
-      name: Marius Magureanu
-    name: varnish-ingress-controller
-    urls:
-    - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.1.tgz
-    version: 0.3.1
-  - annotations:
-      artifacthub.io/category: networking
-      artifacthub.io/prerelease: "true"
-      category: cluster
-    apiVersion: v2
-    appVersion: 0.3.0
-    created: "2024-09-26T14:36:29.083285866+02:00"
-    description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: 5cf9d4f4469d16c8ed33da60ecc57f6c69c94f9c2a24596a4b78bcf40fad152a
-    home: https://varnish-cache.org
-    icon: https://varnish-cache.org/_static/varnish-bunny.png
-    keywords:
-    - kubernetes
-    - helm
-    - varnish
-    - varnish-cache
-    - ingress
-    maintainers:
-    - email: mariusmagureanu@live.dk
-      name: Marius Magureanu
-    name: varnish-ingress-controller
-    urls:
-    - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.0.tgz
-    version: 0.3.0
-  - annotations:
-      artifacthub.io/category: networking
-      artifacthub.io/prerelease: "true"
-      category: cluster
-    apiVersion: v2
-    appVersion: 0.2.0
-    created: "2024-09-02T23:07:10.405124917+02:00"
-    description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: db19c8eaa64e78ba5cc68b143ebebec9620af00516bd2fd633d96a1d8887173e
-    home: https://varnish-cache.org
-    icon: https://varnish-cache.org/_static/varnish-bunny.png
-    keywords:
-    - kubernetes
-    - helm
-    - varnish
-    - varnish-cache
-    - ingress
-    maintainers:
-    - email: mariusmagureanu@live.dk
-      name: Marius Magureanu
-    name: varnish-ingress-controller
-    urls:
-    - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.2.0.tgz
-    version: 0.2.0
-  - annotations:
-      artifacthub.io/category: networking
-      artifacthub.io/prerelease: "true"
-      category: cluster
-    apiVersion: v2
-    appVersion: 0.1.0
-    created: "2024-09-02T23:07:10.404806728+02:00"
-    description: A Helm chart for deploying the Varnish Ingress Controller
-    digest: e9a8980dbbcbd58cd0a29847ac54fed8ff369f5685dd65bd3d774edcc60a473f
-    home: https://varnish-cache.org
-    icon: https://varnish-cache.org/_static/varnish-bunny.png
-    keywords:
-    - kubernetes
-    - helm
-    - varnish
-    - varnish-cache
-    - ingress
-    maintainers:
-    - email: mariusmagureanu@live.dk
-      name: Marius Magureanu
-    name: varnish-ingress-controller
-    urls:
-    - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.1.0.tgz
-    version: 0.1.0
-generated: "2024-10-29T16:03:35.169429656+01:00"
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        artifacthub.io/signKey:
+          "fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D\nurl:
+          https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc
+          \n"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.5.0
+      created: "2025-04-02T19:18:49.144906461+02:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: edc909764ab51b25bec02831f90424fdf728499427acce4d744387701c7b981f
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      sources:
+        - https://github.com/mariusmagureanu/vingress
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.4.0.tgz
+      version: 0.4.0
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        artifacthub.io/signKey:
+          "fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D\nurl:
+          https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc
+          \n"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.4.0
+      created: "2024-10-29T16:03:35.169938614+01:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: 4b1ad6530d068817e190d3b8edd1e2f475c5d5e58439fd41a691653210e2888a
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      sources:
+        - https://github.com/mariusmagureanu/vingress
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.2.tgz
+      version: 0.3.2
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.3.1
+      created: "2024-09-27T12:17:52.994266519+02:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: c5d53efa0502634d888eee0a124d0f6547ab350967823374a1a6b37c5d83d08a
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.1.tgz
+      version: 0.3.1
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.3.0
+      created: "2024-09-26T14:36:29.083285866+02:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: 5cf9d4f4469d16c8ed33da60ecc57f6c69c94f9c2a24596a4b78bcf40fad152a
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.3.0.tgz
+      version: 0.3.0
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.2.0
+      created: "2024-09-02T23:07:10.405124917+02:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: db19c8eaa64e78ba5cc68b143ebebec9620af00516bd2fd633d96a1d8887173e
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.2.0.tgz
+      version: 0.2.0
+    - annotations:
+        artifacthub.io/category: networking
+        artifacthub.io/prerelease: "true"
+        category: cluster
+      apiVersion: v2
+      appVersion: 0.1.0
+      created: "2024-09-02T23:07:10.404806728+02:00"
+      description: A Helm chart for deploying the Varnish Ingress Controller
+      digest: e9a8980dbbcbd58cd0a29847ac54fed8ff369f5685dd65bd3d774edcc60a473f
+      home: https://varnish-cache.org
+      icon: https://varnish-cache.org/_static/varnish-bunny.png
+      keywords:
+        - kubernetes
+        - helm
+        - varnish
+        - varnish-cache
+        - ingress
+      maintainers:
+        - email: mariusmagureanu@live.dk
+          name: Marius Magureanu
+      name: varnish-ingress-controller
+      urls:
+        - https://mariusmagureanu.github.io/vingress/charts/varnish-ingress-controller-0.1.0.tgz
+      version: 0.1.0
+generated: "2025-04-02T19:18:49.14409531+02:00"

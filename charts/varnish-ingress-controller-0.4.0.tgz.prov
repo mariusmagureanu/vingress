@@ -8,7 +8,7 @@ annotations:
     https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc \n"
   category: cluster
 apiVersion: v2
-appVersion: 0.4.0
+appVersion: 0.5.0
 description: A Helm chart for deploying the Varnish Ingress Controller
 home: https://varnish-cache.org
 icon: https://varnish-cache.org/_static/varnish-bunny.png
@@ -24,18 +24,18 @@ maintainers:
 name: varnish-ingress-controller
 sources:
 - - https://github.com/mariusmagureanu/vingress
-version: 0.3.2
+version: 0.4.0
 
 ...
 files:
-  varnish-ingress-controller-0.3.2.tgz: sha256:4b1ad6530d068817e190d3b8edd1e2f475c5d5e58439fd41a691653210e2888a
+  varnish-ingress-controller-0.4.0.tgz: sha256:edc909764ab51b25bec02831f90424fdf728499427acce4d744387701c7b981f
 -----BEGIN PGP SIGNATURE-----
 
-wsBcBAEBCgAQBQJnIPSeCRCtufDAbX8mnQAAow0IAIDriuf+fDzi/XNKSL8GTAGA
-bT1DifH4AYefGcddwKW4rb7TGbCNDxCK1dTS2porbiZS80tPpEFJ1CcsTZdrb0Gz
-a6TT9pn9HnQtzc8B2c173LZgNDwEtixdKjbNIDdyGy7hqbv4uFue2OXFP2LG0PBt
-TmUSsSUaNiDFiEZpgPXrS2Oe+4gxwvDOCih7NMe/t1+EARENAncT1BNRYmhi7ZDI
-t8lJQE7dhcSFP3gHJgB4UqjO+Wo3LVLPQHsogYrDLZH0FO5rS0bpMtEjVyzZRfd+
-ckCqBtFzD5kWZV+81tfz6xfcFmKFla50GRkDRPDz8dTXBAntKV3xUlE6FrrExu4=
-=hRAE
+wsBcBAEBCgAQBQJn7VakCRCtufDAbX8mnQAAUrQIALvMQvuIq8A9r4jSd/DCxQ5+
+wo7CZgVpwuL6bFhqfGgbWyB+NDFRb47p73sduxl5ZhSL+IBfsaQtS7r1/A2uSNFJ
+kNo7VLpWZeOPgEeV/3FzvR5HrRHLZo3WWsI9/EyHSLxS/gs/r+9BBdGT6LzwhOVK
+vq7+RngGiZlef9UHl4GWXUpdtUZPaUrewwky06BloikwUNYlTw2abjcPiiX9TMVP
+KKfGJlpwCUCKdmim/ll6PhtxdM/GsHsLhOwKechmKmULPyv1vqFEHpL8Pu+i+CnX
+2KK/RzSH1uWiu1ngNzu0mJ09dSBkRz9axQhXlk8lolgZjhPQc2In5JupkQsaEEc=
+=A4rH
 -----END PGP SIGNATURE-----
