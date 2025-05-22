@@ -2,16 +2,14 @@
 ![Audit](https://github.com/mariusmagureanu/vingress/actions/workflows/audit.yaml/badge.svg)
 ![Clippy Lint](https://github.com/mariusmagureanu/vingress/actions/workflows/clippy.yaml/badge.svg)
 ![Docker Pulls](https://img.shields.io/docker/pulls/mariusm/vingress)
-[![Rust Version](https://img.shields.io/badge/rustc-1.85-blue.svg)](https://www.rust-lang.org)
+[![Rust Version](https://img.shields.io/badge/rustc-1.87-blue.svg)](https://www.rust-lang.org)
 [![dependency status](https://deps.rs/repo/github/mariusmagureanu/vingress/status.svg)](https://deps.rs/repo/github/mariusmagureanu/vingress)
 [![Maintenance](https://img.shields.io/badge/maintenance-actively%20maintained-green.svg)](https://github.com/mariusmagureanu/vingress)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/varnish-ingress-controller)](https://artifacthub.io/packages/search?repo=varnish-ingress-controller)
 ![License](https://img.shields.io/badge/license-BSD%202--Clause-blue.svg)
 
-
-
-
 ### Varnish Ingress controller
+
 Lite implementation of a Varnish Ingress controller.
 
 ---
@@ -27,7 +25,7 @@ Lite implementation of a Varnish Ingress controller.
 
 ### How does it work
 
-The ``varnish-ingress-controller`` watches over Ingress objects in the cluster. The watcher is configured to
+The `varnish-ingress-controller` watches over Ingress objects in the cluster. The watcher is configured to
 filter through Ingress objects with the following label:
 
 ```yaml
@@ -42,9 +40,8 @@ spec.ingressClassName: varnish
 
 The spec of the Ingress objects is then translated into Varnish [VCL](https://varnish-cache.org/docs/trunk/users-guide/vcl.html).
 
-The ``varnish-ingress-controller`` watches over ``INIT | ADD | UPDATE | DELETE`` Ingress events and updates
+The `varnish-ingress-controller` watches over `INIT | ADD | UPDATE | DELETE` Ingress events and updates
 the Varnish VCL accordingly. After a succesfull VCL file update, Varnish will reload its VCL just so it becomes aware of the latest configuration.
-
 
 Example:
 
@@ -64,26 +61,26 @@ metadata:
 spec:
   ingressClassName: varnish
   rules:
-  - host: foo.bar.com
-    http:
-      paths:
-      - backend:
-          service:
-            name: media-v1-svc
-            port:
-              number: 80
-        path: /foo
-        pathType: Prefix
-  - host: qux.bar.com
-    http:
-      paths:
-      - backend:
-          service:
-            name: media-v2-svc
-            port:
-              number: 80
-        path: /qux
-        pathType: Exact
+    - host: foo.bar.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: media-v1-svc
+                port:
+                  number: 80
+            path: /foo
+            pathType: Prefix
+    - host: qux.bar.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: media-v2-svc
+                port:
+                  number: 80
+            path: /qux
+            pathType: Exact
 ```
 
 yields the following VCL:
@@ -100,12 +97,12 @@ backend demo-media-media-v1-svc {
   .host = "media-v1-svc.demo.svc.cluster.local";
   .port = "80";
 }
-  
+
 backend demo-media-media-v2-svc {
   .host = "media-v2-svc.demo.svc.cluster.local";
   .port = "80";
 }
-  
+
 
 sub vcl_recv {
  if (req.http.host == "foo.bar.com" && req.url ~ "^/foo") {
@@ -131,19 +128,19 @@ $ helm upgrade varnish-ingress-controller --install --namespace vingress --creat
 
 Update the spec of your Ingress(es) with the following requirements:
 
-1. add the following label: ``kubernetes.io/ingress: varnish``
-2. set the ingress class: ``spec.ingressClassName: varnish``
+1. add the following label: `kubernetes.io/ingress: varnish`
+2. set the ingress class: `spec.ingressClassName: varnish`
 
-Investigate the logs of the ``varnish-ingress-controller`` pod, they should reflect the updates mentioned above on your Ingress object(s):
+Investigate the logs of the `varnish-ingress-controller` pod, they should reflect the updates mentioned above on your Ingress object(s):
 
 Example:
 
 ```sh
-$ kubectl -n <your-namespace> logs po/varnish-ingress-controller-xxxxxxxxxx-yyyyy 
+$ kubectl -n <your-namespace> logs po/varnish-ingress-controller-xxxxxxxxxx-yyyyy
 ```
 
 A Kubernetes service is available to be used for reaching the Varnish containers. It is up to you whether this service
-should be used in conjuction with a load-balancer or not. 
+should be used in conjuction with a load-balancer or not.
 For quick testing and shorter feedback loops it's easier to just port forward it locally:
 
 Example:
@@ -157,21 +154,21 @@ $ curl http://127.1:6081/foo -H "Host: foo.bar.com" -v
 
 ### More VCL
 
-The ``varnish-ingress-controller`` translates the Ingress spec into VCL syntax. However, there's often the 
+The `varnish-ingress-controller` translates the Ingress spec into VCL syntax. However, there's often the
 case that the generated VCL needs to be extended to accomodate the various use cases.
 
-Check for the ``varnish-vcl`` configmap in the namespace where the ``varnish-ingress-controller`` is installed.
+Check for the `varnish-vcl` configmap in the namespace where the `varnish-ingress-controller` is installed.
 The Configmap has the following fields which is watched by the ingress-controller:
 
- * ``vcl_recv_snippet``: snippet added in the ``vcl_recv`` subroutine after the backends selection
- * ``snippet``: snippet added after the ``vcl_rec`` subroutine
+- `vcl_recv_snippet`: snippet added in the `vcl_recv` subroutine after the backends selection
+- `snippet`: snippet added after the `vcl_rec` subroutine
 
 Whenever these 2 mentioned fields in the Configmap are updated - the following happens:
 
- 1. update the generated VCL file
- 2. issue a ``varnishreload`` command just so Varnish picks up the new updates
+1.  update the generated VCL file
+2.  issue a `varnishreload` command just so Varnish picks up the new updates
 
-Example: 
+Example:
 
 ```sh
 $ kubectl -n vingress get cm/varnish-vcl -o yaml
@@ -219,5 +216,5 @@ data:
 This paragraph highlights some assumptions made in this implementation.
 
 - Single container pod, the Varnish process is started within the controller code
-- The ``vcl_recv`` subroutine is configurable only via editing the vcl.hbs template
-- There is no fancy editing of the VCL file, when either the Ingress objects or the ``varnish-vcl`` Configmap changes, then the VCL file is rewritten entirely
+- The `vcl_recv` subroutine is configurable only via editing the vcl.hbs template
+- There is no fancy editing of the VCL file, when either the Ingress objects or the `varnish-vcl` Configmap changes, then the VCL file is rewritten entirely
