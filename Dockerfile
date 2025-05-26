@@ -9,7 +9,7 @@ COPY template/vcl.hbs template/vcl.hbs
 RUN cargo build --release
 
 
-FROM varnish:7.6-alpine AS release
+FROM varnish:7.7-alpine AS release
 LABEL maintainers="Varnish-Cache Friends"
 
 USER root
