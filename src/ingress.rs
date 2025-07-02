@@ -24,15 +24,14 @@ pub async fn watch_ingresses(
     let mut observer = watcher(
         ingress_api,
         watcher::Config::default()
-            .labels(format!("kubernetes.io/ingress={}", ingress_class_name).as_str()),
+            .labels(format!("kubernetes.io/ingress={ingress_class_name}").as_str()),
     )
     .default_backoff()
     .boxed();
 
     let mut backends: HashMap<String, Vec<Backend>> = HashMap::new();
     info!(
-        "Started watching ingresses of class: [{}]",
-        ingress_class_name,
+        "Started watching ingresses of class: [{ingress_class_name}]",
     );
 
     while let Some(ev) = observer.try_next().await.unwrap() {
@@ -72,7 +71,7 @@ pub async fn update_status(
         .list(&ListParams::default())
         .await
         .map_err(|err| {
-            error!("Error listing ingresses: {:?}", err);
+            error!("Error listing ingresses: {err:?}");
             err
         })?;
 
@@ -88,8 +87,7 @@ pub async fn update_status(
 
         if ingress.status.is_none() {
             warn!(
-                "Ingress [{}] in namespace [{}] has no status",
-                name, namespace
+                "Ingress [{name}] in namespace [{namespace}] has no status"
             );
             continue;
         }
@@ -102,7 +100,7 @@ pub async fn update_status(
             }
         });
 
-        debug!("Applying ingress status patch {}", patch);
+        debug!("Applying ingress status patch {patch}");
 
         let patch_params = PatchParams::apply("update-status");
 
@@ -116,7 +114,7 @@ pub async fn update_status(
                 "Patched ingress: [{}]",
                 updated.metadata.name.unwrap_or_default()
             ),
-            Err(err) => error!("Failed to patch ingress [{}]: {:?}", name, err),
+            Err(err) => error!("Failed to patch ingress [{name}]: {err:?}"),
         }
     }
 
@@ -197,19 +195,18 @@ fn handle_ingress_event(
 
     if !is_varnish_class(ingress, ingress_class_name) {
         info!(
-            "Skipping ingress [{}], it does not have the Varnish class.",
-            ing_name
+            "Skipping ingress [{ing_name}], it does not have the Varnish class."
         );
         return;
     }
 
-    info!("Parsing ingress [{}]", ing_name);
+    info!("Parsing ingress [{ing_name}]");
     match parse_ingress_spec(ingress.clone()) {
         Ok(bbs) => {
             backends.insert(ing_name.to_string(), bbs);
         }
         Err(e) => {
-            error!("Error parsing ingress [{}]: {}", ing_name, e);
+            error!("Error parsing ingress [{ing_name}]: {e}");
         }
     }
 }
@@ -223,13 +220,12 @@ fn handle_ingress_delete(
 
     if !is_varnish_class(ingress, ingress_class_name) {
         info!(
-            "Skipping ingress [{}], it does not have the Varnish class.",
-            ing_name
+            "Skipping ingress [{ing_name}], it does not have the Varnish class."
         );
         return;
     }
 
-    warn!("Deleting ingress [{}]", ing_name);
+    warn!("Deleting ingress [{ing_name}]");
     backends.remove(ing_name);
 }
 
@@ -239,12 +235,12 @@ fn reconcile_backends(v: &Rc<RefCell<Vcl>>, backends: &HashMap<String, Vec<Backe
     v.borrow_mut().backends = backends_list;
 
     if let Err(e) = update(&v.borrow()) {
-        error!("{}", e);
+        error!("{e}");
         process::exit(1);
     }
 
     if let Err(e) = reload(&v.borrow()) {
-        error!("{}", e);
+        error!("{e}");
         process::exit(1);
     }
 }

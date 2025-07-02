@@ -59,7 +59,7 @@ async fn main() {
     let client = match Client::try_default().await {
         Ok(c) => c,
         Err(e) => {
-            error!("Could not init k8s client: {}", e);
+            error!("Could not init k8s client: {e}");
             process::exit(1);
         }
     };
@@ -95,18 +95,18 @@ async fn main() {
     );
 
     if let Err(e) = leader_result {
-        error!("Error establishing the leader: {}", e);
+        error!("Error establishing the leader: {e}");
     }
 
     if let Err(e) = service_result {
-        error!("Error watching service: {}", e);
+        error!("Error watching service: {e}");
     }
 
     if let Err(e) = ingress_result {
-        error!("Error watching ingresses: {}", e);
+        error!("Error watching ingresses: {e}");
     }
 
     if let Err(e) = configmap_result {
-        error!("Error watching configmap: {}", e);
+        error!("Error watching configmap: {e}");
     }
 }

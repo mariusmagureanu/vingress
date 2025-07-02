@@ -33,8 +33,7 @@ pub async fn watch_service(
         .boxed();
 
     info!(
-        "Started watching service [{}] in namespace [{}]",
-        name, namespace
+        "Started watching service [{name}] in namespace [{namespace}]"
     );
 
     while let Some(sv) = observer.try_next().await.unwrap() {
@@ -45,14 +44,14 @@ pub async fn watch_service(
         if let watcher::Event::Apply(svc) = sv {
             match update_status_from_svc(svc).await {
                 Ok(mut lbi) => {
-                    info!("reading service [{}]", name);
+                    info!("reading service [{name}]");
                     lbi = sort_load_balancer_ingresses(lbi);
                     if let Err(e) = update_status(client.clone(), lbi).await {
-                        error!("Failed updating ingress status: {}", e);
+                        error!("Failed updating ingress status: {e}");
                     }
                 }
                 Err(e) => {
-                    error!("{}", e);
+                    error!("{e}");
                 }
             }
         }
@@ -150,7 +149,7 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
             Ok(addrs)
         }
 
-        Some(unknown_type) => Err(format!("Unknown service type: [{}]", unknown_type)),
+        Some(unknown_type) => Err(format!("Unknown service type: [{unknown_type}]")),
 
         None => Err("Service type not specified".to_string()),
     }

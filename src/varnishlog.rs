@@ -9,7 +9,7 @@ use tokio::process::Command;
 pub async fn start(work_dir: &str) {
     let args: Vec<&str> = vec!["-n", work_dir, "-g", "request"];
 
-    info!("Starting VarnishLog with the following args: {:?}", args);
+    info!("Starting VarnishLog with the following args: {args:?}");
 
     let mut child = Command::new("varnishlog")
         .args(args)
@@ -81,8 +81,8 @@ pub async fn parse_log_line(line: &str, re_patterns: &RegexPatterns, state: &mut
             state.method, state.protocol, state.url, state.resp_status, state.resp_reason
         );
         match serde_json::to_string(state) {
-            Ok(json) => info!("{}", json),
-            Err(err) => error!("Failed to serialize request state: {}", err),
+            Ok(json) => info!("{json}"),
+            Err(err) => error!("Failed to serialize request state: {err}"),
         }
         state.clear();
     }
@@ -162,17 +162,17 @@ impl fmt::Display for VarnishLog {
         )?;
 
         for (key, value) in &self.req_headers {
-            writeln!(f, ">> {}: {}", key, value)?;
+            writeln!(f, ">> {key}: {value}")?;
         }
 
         for (key, value) in &self.resp_headers {
-            writeln!(f, "  << {}: {}", key, value)?;
+            writeln!(f, "  << {key}: {value}")?;
         }
 
         if !self.beresp_status.is_empty() && !self.beresp_reason.is_empty() {
             writeln!(f, "    <<< {} {}", self.beresp_status, self.beresp_reason)?;
             for (key, value) in &self.beresp_headers {
-                writeln!(f, "    <<< {}: {}", key, value)?;
+                writeln!(f, "    <<< {key}: {value}")?;
             }
         }
 
