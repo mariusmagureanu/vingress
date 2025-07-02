@@ -26,7 +26,7 @@ pub async fn run_leader_election(
         match try_acquire_leadership(&leases, &pod_name).await {
             Ok(true) => {
                 leader_status.store(true, Ordering::Relaxed);
-                debug!("Current varnish-ingress-controller leader: {}", pod_name);
+                debug!("Current varnish-ingress-controller leader: {pod_name}");
                 maintain_leadership(&leases, &pod_name).await;
             }
             Ok(false) => {
@@ -36,7 +36,7 @@ pub async fn run_leader_election(
             }
             Err(e) => {
                 leader_status.store(false, Ordering::Relaxed);
-                error!("Error during leader election: {:?}", e);
+                error!("Error during leader election: {e:?}");
                 sleep(Duration::from_secs(5)).await;
             }
         }
@@ -119,10 +119,10 @@ async fn maintain_leadership(leases: &Api<Lease>, pod_name: &str) {
     loop {
         match update_lease(leases, pod_name).await {
             Ok(_) => {
-                debug!("Leadership maintained by: {}", pod_name);
+                debug!("Leadership maintained by: {pod_name}");
             }
             Err(e) => {
-                error!("Failed to maintain leadership: {:?}", e);
+                error!("Failed to maintain leadership: {e:?}");
                 break;
             }
         }

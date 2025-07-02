@@ -41,7 +41,7 @@ pub async fn start(v: &Varnish<'_>) {
         args.push(v.storage);
     }
 
-    info!("Starting Varnish with the following args: {:?}", args);
+    info!("Starting Varnish with the following args: {args:?}");
 
     let mut child = Command::new(v.cmd)
         .args(args)
@@ -79,12 +79,12 @@ fn handle_exit_status(exit_status: Result<ExitStatus, std::io::Error>) {
             if status.success() {
                 info!("Varnish process completed successfully.");
             } else {
-                error!("Varnish process crashed with status: {}", status);
+                error!("Varnish process crashed with status: {status}");
                 process::exit(1);
             }
         }
         Err(e) => {
-            error!("Failed to wait on child process: {}", e);
+            error!("Failed to wait on child process: {e}");
             process::exit(1);
         }
     }

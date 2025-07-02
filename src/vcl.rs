@@ -132,7 +132,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
     handlebars
         .register_template_file(TEMPLATE_KEY, vcl.template)
         .map_err(|e| {
-            error!("Failed to register template file: {}", e);
+            error!("Failed to register template file: {e}");
             UpdateError(e.to_string())
         })?;
 
@@ -149,8 +149,8 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
     let rendered_content = handlebars
         .render(TEMPLATE_KEY, &template_data)
         .map_err(|e| {
-            error!("Template render error: {}", e);
-            UpdateError(format!("Template render error: {}", e))
+            error!("Template render error: {e}");
+            UpdateError(format!("Template render error: {e}"))
         })?;
 
     // Write the rendered content to the specified file
@@ -158,7 +158,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
         .and_then(|mut file| file.write_all(rendered_content.as_bytes()))
         .map_err(|e| {
             error!("Failed to write to VCL file [{}]: {}", vcl.file, e);
-            UpdateError(format!("VCL file write error: {}", e))
+            UpdateError(format!("VCL file write error: {e}"))
         })?;
 
     info!("VCL file [{}] has been successfully updated", vcl.file);

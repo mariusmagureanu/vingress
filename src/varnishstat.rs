@@ -38,7 +38,7 @@ pub async fn start(work_dir: &str) {
     let server_task = launch_rocket(shared_meter, shared_stats_registry, work_dir);
 
     if let Err(e) = server_task.await {
-        error!("Could not start Rocket: {:?}", e)
+        error!("Could not start Rocket: {e:?}")
     }
 }
 
@@ -69,7 +69,7 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
         "-j",
     ];
 
-    info!("Running varnishstat with args: {:?}", args);
+    info!("Running varnishstat with args: {args:?}");
 
     match Command::new("varnishstat").args(args).output().await {
         Ok(output) if output.status.success() => {
@@ -77,11 +77,11 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
         }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            error!("Varnishstat error: {}", stderr);
+            error!("Varnishstat error: {stderr}");
             Err(stderr.to_string())
         }
         Err(e) => {
-            error!("Failed to execute varnishstat: {}", e);
+            error!("Failed to execute varnishstat: {e}");
             Err(e.to_string())
         }
     }
@@ -112,7 +112,7 @@ async fn metrics(
     let varnish_output = match run_varnishstat(work_dir).await {
         Ok(s) => s,
         Err(e) => {
-            error!("failed to run varnishstat: {}", e);
+            error!("failed to run varnishstat: {e}");
             return Err(e);
         }
     };
@@ -120,7 +120,7 @@ async fn metrics(
     let varnish_stats: Stats = match serde_json::from_str(&varnish_output) {
         Ok(s) => s,
         Err(e) => {
-            error!("failed to Deserialize varnishstats: {}", e);
+            error!("failed to Deserialize varnishstats: {e}");
             return Err(e.to_string());
         }
     };
@@ -144,14 +144,14 @@ async fn metrics(
 
     let mut buffer = BufWriter::new(Vec::new());
     if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
-        error!("failed to encode metrics: {}", e);
+        error!("failed to encode metrics: {e}");
         return Err(e.to_string());
     }
 
     match String::from_utf8(buffer.into_inner().unwrap_or_default()) {
         Ok(r) => Ok(r),
         Err(e) => {
-            error!("failed to convert metrics: {}", e);
+            error!("failed to convert metrics: {e}");
             Err(e.to_string())
         }
     }

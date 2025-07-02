@@ -28,8 +28,7 @@ pub async fn watch_configmap(
         .boxed();
 
     info!(
-        "Started watching configmap: [{}] in namespace: [{}]",
-        CONFIGMAP_NAME, namespace
+        "Started watching configmap: [{CONFIGMAP_NAME}] in namespace: [{namespace}]"
     );
 
     while let Some(event) = observer.try_next().await.unwrap() {
@@ -46,7 +45,7 @@ pub async fn watch_configmap(
 fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name: &str) {
     match cm.metadata().name.as_deref() {
         Some(name) if name == configmap_name => {
-            info!("Reading the [{}] configmap", configmap_name);
+            info!("Reading the [{configmap_name}] configmap");
 
             let data = cm.data.as_ref();
 
@@ -56,8 +55,7 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
                 true
             } else {
                 warn!(
-                    "No 'snippet' key found in the [{}] configmap",
-                    configmap_name
+                    "No 'snippet' key found in the [{configmap_name}] configmap"
                 );
                 false
             };
@@ -70,20 +68,19 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name
                 true
             } else {
                 warn!(
-                    "No 'vcl_recv_snippet' key found in the [{}] configmap",
-                    configmap_name
+                    "No 'vcl_recv_snippet' key found in the [{configmap_name}] configmap"
                 );
                 false
             };
 
             if snippet_updated || vcl_recv_snippet_updated {
                 if let Err(e) = update(&vcl.borrow()) {
-                    error!("Failed to update VCL with updated snippets: {}", e);
+                    error!("Failed to update VCL with updated snippets: {e}");
                     process::exit(1);
                 }
 
                 if let Err(e) = reload(&vcl.borrow()) {
-                    error!("Failed to reload VCL with updated snippets: {}", e);
+                    error!("Failed to reload VCL with updated snippets: {e}");
                     process::exit(1);
                 }
             }
