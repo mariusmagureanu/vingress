@@ -122,17 +122,15 @@ async fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerI
 
             info!("reading service type LoadBalancer");
 
-            if let Some(status) = &svc.status {
-                if let Some(load_balancer) = &status.load_balancer {
-                    if let Some(ingresses) = &load_balancer.ingress {
+            if let Some(status) = &svc.status
+                && let Some(load_balancer) = &status.load_balancer
+                    && let Some(ingresses) = &load_balancer.ingress {
                         addrs.extend(ingresses.iter().map(|ingress| IngressLoadBalancerIngress {
                             ip: ingress.ip.clone(),
                             hostname: ingress.hostname.clone(),
                             ports: None,
                         }));
                     }
-                }
-            }
 
             let existing_ips: HashSet<String> = addrs.iter().filter_map(|a| a.ip.clone()).collect();
 
