@@ -122,11 +122,10 @@ pub async fn update_status(
 }
 
 fn is_varnish_class(ing: &Ingress, ingress_class_name: &str) -> bool {
-    if let Some(spec) = &ing.spec {
-        if let Some(class_name) = &spec.ingress_class_name {
+    if let Some(spec) = &ing.spec
+        && let Some(class_name) = &spec.ingress_class_name {
             return class_name.eq_ignore_ascii_case(ingress_class_name);
         }
-    }
     false
 }
 
