@@ -1,12 +1,13 @@
 FROM rust:1.89-alpine AS builder
 
-RUN apk add --no-cache musl-dev build-base
+RUN apk add --no-cache musl-dev build-base upx
 
 COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY template/vcl.hbs template/vcl.hbs
 
 RUN cargo build --release
+RUN upx ./target/release/vingress
 
 
 FROM varnish:7.7-alpine AS release
