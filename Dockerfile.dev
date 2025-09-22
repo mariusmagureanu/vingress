@@ -1,4 +1,4 @@
-FROM rust:1.89-alpine AS builder
+FROM rust:1.90-alpine AS builder
 
 RUN apk add --no-cache musl-dev build-base upx
 
@@ -10,7 +10,7 @@ RUN cargo b
 RUN upx ./target/debug/vingress
 
 
-FROM varnish:7.7-alpine AS release
+FROM varnish:8.0-alpine AS release
 LABEL maintainers="Varnish-Cache Friends"
 
 USER root
