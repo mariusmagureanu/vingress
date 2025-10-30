@@ -12,6 +12,8 @@ use opentelemetry::metrics::MeterProvider;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use prometheus::{Encoder, Registry, TextEncoder};
 
+const VARNISH_STAT_BIN: &str = "varnishstat";
+
 #[derive(Deserialize)]
 struct Stats {
     counters: HashMap<String, VarnishCounter>,
@@ -71,7 +73,7 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
 
     info!("Running varnishstat with args: {args:?}");
 
-    match Command::new("varnishstat").args(args).output().await {
+    match Command::new(VARNISH_STAT_BIN).args(args).output().await {
         Ok(output) if output.status.success() => {
             Ok(String::from_utf8_lossy(&output.stdout).to_string())
         }

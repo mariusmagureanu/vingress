@@ -27,6 +27,8 @@ mod varnishstat;
 mod vcl;
 mod vcl_test;
 
+const VARNISH_BIN: &str = "varnishd";
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
@@ -34,7 +36,7 @@ async fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or(args.log_level)).init();
 
     let v = Varnish {
-        cmd: "varnishd",
+        cmd: VARNISH_BIN,
         port: &args.http_port,
         vcl: &args.vcl_file,
         work_dir: &args.work_folder,
