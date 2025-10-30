@@ -6,12 +6,14 @@ use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 
+const VARNISH_LOG_BIN: &str = "varnishlog";
+
 pub async fn start(work_dir: &str) {
     let args: Vec<&str> = vec!["-n", work_dir, "-g", "request"];
 
     info!("Starting VarnishLog with the following args: {args:?}");
 
-    let mut child = Command::new("varnishlog")
+    let mut child = Command::new(VARNISH_LOG_BIN)
         .args(args)
         .stdout(Stdio::piped())
         .spawn()
