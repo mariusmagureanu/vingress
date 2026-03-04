@@ -1,5 +1,5 @@
 use chrono::{SecondsFormat, Utc};
-use k8s_openapi::api::coordination::v1::Lease;
+use k8s_openapi::{api::coordination::v1::Lease, jiff::Timestamp};
 use kube::{
     Client,
     api::{Api, Patch, PatchParams, PostParams},
@@ -58,14 +58,15 @@ async fn try_acquire_leadership(
             .as_ref()
             .unwrap()
             .0;
-        let duration_since_last_renewal = Utc::now() - renewal_time;
 
-        if duration_since_last_renewal.num_seconds() > 15 {
+        let expiry = renewal_time + Duration::from_mins(15);
+
+        if Timestamp::now() > expiry {
             update_lease(leases, pod_name).await?;
-            return Ok(true);
+            Ok(true)
+        } else {
+            Ok(false)
         }
-
-        Ok(false)
     } else {
         create_lease(leases, pod_name).await?;
         Ok(true)
