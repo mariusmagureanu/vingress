@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::time::{Duration, sleep};
 
 const LEASE_NAME: &str = "vingress-leader-lock";
+const LEASE_DURATION: u64 = 15;
 
 pub async fn run_leader_election(
     leader_status: Arc<AtomicBool>,
@@ -59,18 +60,17 @@ async fn try_acquire_leadership(
             .unwrap()
             .0;
 
-        let expiry = renewal_time + Duration::from_mins(15);
+        let expiry = renewal_time + Duration::from_secs(LEASE_DURATION);
 
         if Timestamp::now() > expiry {
             update_lease(leases, pod_name).await?;
-            Ok(true)
-        } else {
-            Ok(false)
+            return Ok(true);
         }
-    } else {
-        create_lease(leases, pod_name).await?;
-        Ok(true)
+        return Ok(false);
     }
+
+    create_lease(leases, pod_name).await?;
+    Ok(true)
 }
 
 async fn create_lease(
@@ -83,7 +83,7 @@ async fn create_lease(
         },
         "spec": {
             "holderIdentity": pod_name,
-            "leaseDurationSeconds": 15,
+            "leaseDurationSeconds": LEASE_DURATION,
             "renewTime": Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
         }
     });
@@ -101,7 +101,7 @@ async fn update_lease(
     let patch = json!({
         "spec": {
             "holderIdentity": pod_name,
-            "leaseDurationSeconds": 15,
+            "leaseDurationSeconds": LEASE_DURATION,
             "renewTime": Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
         }
     });
