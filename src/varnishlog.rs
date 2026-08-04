@@ -27,7 +27,7 @@ pub async fn start(work_dir: &str) {
 
         let mut state = VarnishLog::default();
 
-        while let Some(line) = lines.next_line().await.unwrap() {
+        while let Ok(Some(line)) = lines.next_line().await {
             parse_log_line(&line, &re_patterns, &mut state);
         }
     }

@@ -45,28 +45,24 @@ fn handle_configmap_event(cm: &ConfigMap, vcl: &Arc<Mutex<Vcl>>, configmap_name:
             info!("Reading the [{configmap_name}] configmap");
 
             let data = cm.data.as_ref();
+            let mut vcl_guard = vcl.lock().unwrap();
+            let mut updated = false;
 
-            let snippet_updated = if let Some(snippet) = data.and_then(|data| data.get(SNIPPET_KEY))
-            {
-                vcl.lock().unwrap().snippet = snippet.clone();
-                true
+            if let Some(snippet) = data.and_then(|data| data.get(SNIPPET_KEY)) {
+                vcl_guard.snippet = snippet.clone();
+                updated = true;
             } else {
                 warn!("No 'snippet' key found in the [{configmap_name}] configmap");
-                false
-            };
+            }
 
-            let vcl_recv_snippet_updated = if let Some(vcl_recv_snippet) =
-                data.and_then(|data| data.get(VCL_RECV_SNIPPET_KEY))
-            {
-                vcl.lock().unwrap().vcl_recv_snippet = vcl_recv_snippet.clone();
-                true
+            if let Some(vcl_recv_snippet) = data.and_then(|data| data.get(VCL_RECV_SNIPPET_KEY)) {
+                vcl_guard.vcl_recv_snippet = vcl_recv_snippet.clone();
+                updated = true;
             } else {
                 warn!("No 'vcl_recv_snippet' key found in the [{configmap_name}] configmap");
-                false
-            };
+            }
 
-            if snippet_updated || vcl_recv_snippet_updated {
-                let vcl_guard = vcl.lock().unwrap();
+            if updated {
                 if let Err(e) = update(&vcl_guard) {
                     error!("Failed to update VCL with updated snippets: {e}");
                 }

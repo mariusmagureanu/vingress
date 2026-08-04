@@ -59,7 +59,7 @@ pub async fn watch_service(
         }
 
         if let watcher::Event::Apply(svc) = sv {
-            match update_status_from_svc(svc) {
+            match update_status_from_svc(&svc) {
                 Ok(mut lbi) => {
                     info!("reading service [{name}]");
                     lbi = sort_load_balancer_ingresses(lbi);
@@ -76,7 +76,7 @@ pub async fn watch_service(
     Ok(())
 }
 
-fn update_status_from_svc(svc: Service) -> Result<Vec<IngressLoadBalancerIngress>, ServiceError> {
+fn update_status_from_svc(svc: &Service) -> Result<Vec<IngressLoadBalancerIngress>, ServiceError> {
     let spec = svc.spec.as_ref().ok_or(ServiceError::MissingSpec)?;
 
     let svc_type = spec.type_.as_deref();

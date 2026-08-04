@@ -230,14 +230,9 @@ fn reconcile_backends(
 ) -> Result<(), WatcherError> {
     let backends_list = backends.values().flatten().cloned().collect();
 
-    let vcl = v.lock().unwrap();
-    // We need to drop the lock before calling update/reload since they don't need the mutex
-    // but we need to update backends first
-    drop(vcl);
+    let mut vcl = v.lock().unwrap();
+    vcl.backends = backends_list;
 
-    v.lock().unwrap().backends = backends_list;
-
-    let vcl = v.lock().unwrap();
     if let Err(e) = update(&vcl) {
         error!("Failed to update VCL: {e}");
     }
