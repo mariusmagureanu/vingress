@@ -10,7 +10,7 @@ RUN cargo build --release
 RUN upx ./target/release/vingress
 
 
-FROM varnish:8.0-alpine AS release
+FROM varnish:9.0-alpine AS release
 LABEL maintainers="Varnish-Cache Friends"
 
 USER root
