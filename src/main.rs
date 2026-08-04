@@ -8,9 +8,8 @@ use leader::run_leader_election;
 use log::error;
 use service::watch_service;
 use std::process;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 use tokio::join;
 use varnish::{Varnish, start};
 use vcl::Vcl;
@@ -22,10 +21,8 @@ mod leader;
 mod service;
 mod varnish;
 mod varnishlog;
-mod varnishlog_test;
 mod varnishstat;
 mod vcl;
-mod vcl_test;
 
 const VARNISH_BIN: &str = "varnishd";
 
@@ -33,23 +30,26 @@ const VARNISH_BIN: &str = "varnishd";
 async fn main() {
     let args = Args::parse();
 
-    env_logger::Builder::from_env(Env::default().default_filter_or(args.log_level)).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or(&args.log_level)).init();
 
     let v = Varnish {
-        cmd: VARNISH_BIN,
-        port: &args.http_port,
-        vcl: &args.vcl_file,
-        work_dir: &args.work_folder,
-        params: &args.params,
-        default_ttl: &args.default_ttl,
-        storage: &args.storage,
+        cmd: VARNISH_BIN.to_string(),
+        port: args.http_port.clone(),
+        vcl: args.vcl_file.clone(),
+        work_dir: args.work_folder.clone(),
+        params: args.params.clone(),
+        default_ttl: args.default_ttl.clone(),
+        storage: args.storage.clone(),
     };
 
-    start(&v).await;
+    if let Err(e) = start(&v).await {
+        error!("Failed to start Varnish: {e}");
+        process::exit(1);
+    }
 
-    let varnish_work_folder = String::from(&args.work_folder);
-
+    let varnish_work_folder = args.work_folder.clone();
     let wfc = varnish_work_folder.clone();
+
     tokio::spawn(async move {
         varnishlog::start(&varnish_work_folder).await;
     });
@@ -67,14 +67,14 @@ async fn main() {
     };
 
     let vcl = Vcl::new(
-        &args.vcl_file,
-        &args.template,
-        &args.work_folder,
+        args.vcl_file,
+        args.template,
+        args.work_folder.clone(),
         args.vcl_recv_snippet,
         args.vcl_snippet,
     );
 
-    let rc_vcl = Rc::new(RefCell::new(vcl));
+    let arc_vcl = Arc::new(Mutex::new(vcl));
 
     let leader_status = Arc::new(AtomicBool::new(false));
 
@@ -86,8 +86,8 @@ async fn main() {
         "varnish-ingress-service",
         &args.namespace,
     );
-    let ingress_future = watch_ingresses(client.clone(), &rc_vcl, &args.ingress_class);
-    let configmap_future = watch_configmap(client, &rc_vcl, &args.namespace);
+    let ingress_future = watch_ingresses(client.clone(), &arc_vcl, &args.ingress_class);
+    let configmap_future = watch_configmap(client, &arc_vcl, &args.namespace);
 
     let (leader_result, service_result, ingress_result, configmap_result) = join!(
         leader_future,

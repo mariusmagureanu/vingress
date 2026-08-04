@@ -5,20 +5,16 @@ use log::info;
 use serde::Serialize;
 use serde_json::value::Map;
 use std::{fs::File, io::Write, process::Command};
+use thiserror::Error;
 
 const RELOAD_COMMAND: &str = "varnishreload";
 
 const TEMPLATE_KEY: &str = "vcl";
 const BACKEND_KEY: &str = "backend";
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Error, PartialEq)]
+#[error("{0}")]
 pub struct UpdateError(String);
-
-impl std::fmt::Display for UpdateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 ///
 /// Backend is a type that translates an Ingress backend
@@ -71,20 +67,20 @@ pub struct Backend {
 }
 
 #[derive(Serialize)]
-pub struct Vcl<'a> {
-    pub template: &'a str,
-    pub file: &'a str,
-    pub work_folder: &'a str,
+pub struct Vcl {
+    pub template: String,
+    pub file: String,
+    pub work_folder: String,
     pub snippet: String,
     pub vcl_recv_snippet: String,
     pub backends: Vec<Backend>,
 }
 
-impl<'a> Vcl<'a> {
+impl Vcl {
     pub fn new(
-        file: &'a str,
-        template: &'a str,
-        work_folder: &'a str,
+        file: String,
+        template: String,
+        work_folder: String,
         vcl_recv_snippet: String,
         snippet: String,
     ) -> Self {
@@ -130,7 +126,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 
     // Register the template file with Handlebars
     handlebars
-        .register_template_file(TEMPLATE_KEY, vcl.template)
+        .register_template_file(TEMPLATE_KEY, &vcl.template)
         .map_err(|e| {
             error!("Failed to register template file: {e}");
             UpdateError(e.to_string())
@@ -154,7 +150,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
         })?;
 
     // Write the rendered content to the specified file
-    File::create(vcl.file)
+    File::create(&vcl.file)
         .and_then(|mut file| file.write_all(rendered_content.as_bytes()))
         .map_err(|e| {
             error!("Failed to write to VCL file [{}]: {}", vcl.file, e);
@@ -177,7 +173,7 @@ pub fn update(vcl: &Vcl) -> Result<(), UpdateError> {
 pub fn reload(vcl: &Vcl) -> Result<(), UpdateError> {
     let output = Command::new(RELOAD_COMMAND)
         .arg("-n")
-        .arg(vcl.work_folder)
+        .arg(&vcl.work_folder)
         .output()
         .map_err(|e| {
             UpdateError(format!(
@@ -195,5 +191,71 @@ pub fn reload(vcl: &Vcl) -> Result<(), UpdateError> {
             "Failed to reload VCL [{}]: {}",
             vcl.file, stderr_output
         )))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::{fs::File, io::Read};
+
+    #[test]
+    fn test_vcl_load() {
+        let mut v = Vcl::new(
+            "default.vcl".to_string(),
+            "./template/vcl.hbs".to_string(),
+            ".".to_string(),
+            String::default(),
+            String::default(),
+        );
+
+        let mut backends: Vec<Backend> = vec![];
+
+        let b1 = Backend::new(
+            String::from("foo"),
+            String::from("alpha"),
+            String::from("alpha.foo.com"),
+            "/".to_string(),
+            String::from("service1"),
+            String::from("Prefix"),
+            8081,
+        );
+        let b2 = Backend::new(
+            String::from("foo"),
+            String::from("beta"),
+            String::from("beta.foo.com"),
+            "/foo".to_string(),
+            String::from("service2"),
+            String::from("Exact"),
+            8082,
+        );
+        let b3 = Backend::new(
+            String::from("foo"),
+            String::from("delta"),
+            String::from("delta.foo.com"),
+            "/bar".to_string(),
+            String::from("service3"),
+            String::from("ImplementationSpecific"),
+            8083,
+        );
+
+        backends.push(b1);
+        backends.push(b2);
+        backends.push(b3);
+
+        v.backends = backends;
+        if let Err(e) = update(&v) {
+            panic!("{}", e);
+        }
+
+        match File::open("default.vcl") {
+            Ok(mut vf) => {
+                let mut vcl_content_from_file: String = Default::default();
+                let _ = vf.read_to_string(&mut vcl_content_from_file);
+
+                assert!(!vcl_content_from_file.is_empty());
+            }
+            Err(e) => panic!("{}", e),
+        }
     }
 }

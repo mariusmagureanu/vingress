@@ -1,6 +1,6 @@
 use log::{error, info};
 use opentelemetry::KeyValue;
-use opentelemetry::metrics::Meter;
+use opentelemetry::metrics::Gauge;
 use rocket::{Ignite, Rocket, State, get, routes};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -34,10 +34,15 @@ pub async fn start(work_dir: &str) {
     let provider = SdkMeterProvider::builder().with_reader(exporter).build();
     let meter = provider.meter("varnish");
 
-    let shared_meter = Arc::new(Mutex::new(meter));
+    let cache_counter = meter
+        .u64_gauge("main_counter")
+        .with_description("Varnish main.* counters")
+        .build();
+
+    let shared_gauge = Arc::new(cache_counter);
     let shared_stats_registry = Arc::new(Mutex::new(registry));
 
-    let server_task = launch_rocket(shared_meter, shared_stats_registry, work_dir);
+    let server_task = launch_rocket(shared_gauge, shared_stats_registry, work_dir);
 
     if let Err(e) = server_task.await {
         error!("Could not start Rocket: {e:?}")
@@ -90,14 +95,14 @@ async fn run_varnishstat(work_dir: &str) -> Result<String, String> {
 }
 
 async fn launch_rocket(
-    shared_meter: Arc<Mutex<Meter>>,
+    shared_gauge: Arc<Gauge<u64>>,
     shared_stats_registry: Arc<Mutex<Registry>>,
     shared_work_dir: &str,
 ) -> Result<Rocket<Ignite>, rocket::Error> {
     info!("Starting the varnishstat exporter server");
 
     rocket::build()
-        .manage(shared_meter)
+        .manage(shared_gauge)
         .manage(shared_stats_registry)
         .manage(String::from(shared_work_dir))
         .mount("/", routes![metrics])
@@ -107,7 +112,7 @@ async fn launch_rocket(
 
 #[get("/metrics")]
 async fn metrics(
-    meter: &State<Arc<Mutex<Meter>>>,
+    gauge: &State<Arc<Gauge<u64>>>,
     registry: &State<Arc<Mutex<Registry>>>,
     work_dir: &State<String>,
 ) -> Result<String, String> {
@@ -127,22 +132,15 @@ async fn metrics(
         }
     };
 
-    let meter_guard = meter.lock().await;
-    let cache_counter = meter_guard
-        .u64_gauge("main_counter")
-        .with_description("Varnish main.* counters")
-        .build();
-
     for (key, value) in varnish_stats.counters {
         let label = &[KeyValue::new("main", key)];
-        cache_counter.record(value.value, label);
+        gauge.record(value.value, label);
     }
-    drop(meter_guard); // Release the lock early.
 
     let encoder = TextEncoder::new();
     let registry_guard = registry.lock().await;
     let metric_families = registry_guard.gather();
-    drop(registry_guard); // Release the lock early.
+    drop(registry_guard);
 
     let mut buffer = BufWriter::new(Vec::new());
     if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
