@@ -1,91 +1,69 @@
 use log::debug;
 use log::{error, info};
-use std::process;
 use std::process::Stdio;
-
-use std::process::ExitStatus;
+use thiserror::Error;
 use tokio::process::Command;
-use tokio::signal::unix::{SignalKind, signal};
 
-pub struct Varnish<'a> {
-    pub cmd: &'a str,
-    pub port: &'a str,
-    pub vcl: &'a str,
-    pub work_dir: &'a str,
-    pub params: &'a str,
-    pub default_ttl: &'a str,
-    pub storage: &'a str,
+#[derive(Debug, Error)]
+pub enum VarnishError {
+    #[error("Failed to start Varnish: {0}")]
+    SpawnFailed(#[from] std::io::Error),
+
+    #[error("Varnish process crashed with status: {0}")]
+    ProcessCrashed(std::process::ExitStatus),
+
+    #[error("Failed to wait on Varnish process: {0}")]
+    WaitFailed(std::io::Error),
 }
 
-pub async fn start(v: &Varnish<'_>) {
-    let varnish_addrr = format!("0.0.0.0:{}", v.port);
+pub struct Varnish {
+    pub cmd: String,
+    pub port: String,
+    pub vcl: String,
+    pub work_dir: String,
+    pub params: String,
+    pub default_ttl: String,
+    pub storage: String,
+}
 
-    let mut args: Vec<&str> = vec![
-        "-a",
-        &varnish_addrr,
-        "-f",
-        v.vcl,
-        "-n",
-        v.work_dir,
-        "-t",
-        v.default_ttl,
+pub async fn start(v: &Varnish) -> Result<(), VarnishError> {
+    let varnish_addr = format!("0.0.0.0:{}", v.port);
+
+    let mut args: Vec<String> = vec![
+        "-a".to_string(),
+        varnish_addr,
+        "-f".to_string(),
+        v.vcl.clone(),
+        "-n".to_string(),
+        v.work_dir.clone(),
+        "-t".to_string(),
+        v.default_ttl.clone(),
     ];
 
-    v.params.split_whitespace().for_each(|p| {
-        args.push("-p");
-        args.push(p);
-    });
+    for p in v.params.split_whitespace() {
+        args.push("-p".to_string());
+        args.push(p.to_string());
+    }
 
     if !v.storage.is_empty() {
-        args.push("-s");
-        args.push(v.storage);
+        args.push("-s".to_string());
+        args.push(v.storage.clone());
     }
 
     info!("Starting Varnish with the following args: {args:?}");
 
-    let mut child = Command::new(v.cmd)
-        .args(args)
+    let mut child = Command::new(&v.cmd)
+        .args(&args)
         .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to start Varnish");
+        .spawn()?;
 
-    let child_handle = tokio::spawn(async move {
-        match child.wait().await {
-            Ok(status) => {
-                handle_exit_status(Ok(status));
-            }
-            Err(e) => {
-                handle_exit_status(Err(e));
-            }
-        }
-    });
+    let status = child.wait().await.map_err(VarnishError::WaitFailed)?;
 
-    let mut sigchld = signal(SignalKind::child()).expect("Failed to create SIGCHLD listener");
-
-    tokio::select! {
-        _ = sigchld.recv() => {
-            debug!("Received SIGCHLD signal");
-        }
-
-        _ = child_handle => {
-            info!("Varnish process finished");
-        }
-    }
-}
-
-fn handle_exit_status(exit_status: Result<ExitStatus, std::io::Error>) {
-    match exit_status {
-        Ok(status) => {
-            if status.success() {
-                info!("Varnish process completed successfully.");
-            } else {
-                error!("Varnish process crashed with status: {status}");
-                process::exit(1);
-            }
-        }
-        Err(e) => {
-            error!("Failed to wait on child process: {e}");
-            process::exit(1);
-        }
+    if status.success() {
+        debug!("Varnish process completed successfully.");
+        Ok(())
+    } else {
+        error!("Varnish process crashed with status: {status}");
+        Err(VarnishError::ProcessCrashed(status))
     }
 }

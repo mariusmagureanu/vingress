@@ -54,10 +54,10 @@ async fn try_acquire_leadership(
         let renewal_time = existing_lease
             .spec
             .as_ref()
-            .unwrap()
+            .ok_or("Lease has no spec")?
             .renew_time
             .as_ref()
-            .unwrap()
+            .ok_or("Lease has no renew_time")?
             .0;
 
         let expiry = renewal_time + Duration::from_secs(LEASE_DURATION);

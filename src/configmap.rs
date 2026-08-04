@@ -6,8 +6,7 @@ use kube::{
     runtime::{WatchStreamExt, watcher},
 };
 use log::{error, info, warn};
-use std::process;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 use crate::vcl::{Vcl, reload, update};
 
@@ -18,7 +17,7 @@ pub const VCL_RECV_SNIPPET_KEY: &str = "vcl_recv_snippet";
 
 pub async fn watch_configmap(
     client: Client,
-    vcl: &Rc<RefCell<Vcl<'_>>>,
+    vcl: &Arc<Mutex<Vcl>>,
     namespace: &str,
 ) -> Result<(), WatcherError> {
     let configmap_api: Api<ConfigMap> = Api::namespaced(client, namespace);
@@ -27,11 +26,9 @@ pub async fn watch_configmap(
         .default_backoff()
         .boxed();
 
-    info!(
-        "Started watching configmap: [{CONFIGMAP_NAME}] in namespace: [{namespace}]"
-    );
+    info!("Started watching configmap: [{CONFIGMAP_NAME}] in namespace: [{namespace}]");
 
-    while let Some(event) = observer.try_next().await.unwrap() {
+    while let Some(event) = observer.try_next().await? {
         match event {
             watcher::Event::Apply(cm) => handle_configmap_event(&cm, vcl, CONFIGMAP_NAME),
             watcher::Event::Delete(cm) => handle_configmap_event(&cm, vcl, CONFIGMAP_NAME),
@@ -42,46 +39,36 @@ pub async fn watch_configmap(
     Ok(())
 }
 
-fn handle_configmap_event(cm: &ConfigMap, vcl: &Rc<RefCell<Vcl>>, configmap_name: &str) {
+fn handle_configmap_event(cm: &ConfigMap, vcl: &Arc<Mutex<Vcl>>, configmap_name: &str) {
     match cm.metadata().name.as_deref() {
         Some(name) if name == configmap_name => {
             info!("Reading the [{configmap_name}] configmap");
 
             let data = cm.data.as_ref();
+            let mut vcl_guard = vcl.lock().unwrap();
+            let mut updated = false;
 
-            let snippet_updated = if let Some(snippet) = data.and_then(|data| data.get(SNIPPET_KEY))
-            {
-                vcl.borrow_mut().snippet = snippet.clone();
-                true
+            if let Some(snippet) = data.and_then(|data| data.get(SNIPPET_KEY)) {
+                vcl_guard.snippet = snippet.clone();
+                updated = true;
             } else {
-                warn!(
-                    "No 'snippet' key found in the [{configmap_name}] configmap"
-                );
-                false
-            };
+                warn!("No 'snippet' key found in the [{configmap_name}] configmap");
+            }
 
-            let vcl_recv_snippet_updated = if let Some(vcl_recv_snippet) =
-                data.and_then(|data| data.get(VCL_RECV_SNIPPET_KEY))
-            {
-                vcl.borrow_mut().vcl_recv_snippet = vcl_recv_snippet.clone();
-
-                true
+            if let Some(vcl_recv_snippet) = data.and_then(|data| data.get(VCL_RECV_SNIPPET_KEY)) {
+                vcl_guard.vcl_recv_snippet = vcl_recv_snippet.clone();
+                updated = true;
             } else {
-                warn!(
-                    "No 'vcl_recv_snippet' key found in the [{configmap_name}] configmap"
-                );
-                false
-            };
+                warn!("No 'vcl_recv_snippet' key found in the [{configmap_name}] configmap");
+            }
 
-            if snippet_updated || vcl_recv_snippet_updated {
-                if let Err(e) = update(&vcl.borrow()) {
+            if updated {
+                if let Err(e) = update(&vcl_guard) {
                     error!("Failed to update VCL with updated snippets: {e}");
-                    process::exit(1);
                 }
 
-                if let Err(e) = reload(&vcl.borrow()) {
+                if let Err(e) = reload(&vcl_guard) {
                     error!("Failed to reload VCL with updated snippets: {e}");
-                    process::exit(1);
                 }
             }
         }
