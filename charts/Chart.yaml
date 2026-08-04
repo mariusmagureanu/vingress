@@ -1,8 +1,8 @@
 apiVersion: v2
 name: varnish-ingress-controller
 description: A Helm chart for deploying the Varnish Ingress Controller
-version: 0.4.0
-appVersion: "0.5.0"
+version: 0.5.0
+appVersion: "0.6.0"
 icon: https://varnish-cache.org/_static/varnish-bunny.png
 home: https://varnish-cache.org
 keywords:
@@ -22,4 +22,4 @@ annotations:
   artifacthub.io/prerelease: "true"
   artifacthub.io/signKey: |
     fingerprint: 4D3E36C33F431E0DD984C60CADB9F0C06D7F269D
-    url: https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc 
+    url: https://mariusmagureanu.github.io/vingress/charts/key/vingress.public.asc
