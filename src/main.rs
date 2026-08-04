@@ -32,14 +32,22 @@ async fn main() {
 
     env_logger::Builder::from_env(Env::default().default_filter_or(&args.log_level)).init();
 
+    let vcl = Vcl::new(
+        args.vcl_file.clone(),
+        args.template,
+        args.work_folder.clone(),
+        args.vcl_recv_snippet,
+        args.vcl_snippet,
+    );
+
     let v = Varnish {
         cmd: VARNISH_BIN.to_string(),
-        port: args.http_port.clone(),
-        vcl: args.vcl_file.clone(),
+        port: args.http_port,
+        vcl: args.vcl_file,
         work_dir: args.work_folder.clone(),
-        params: args.params.clone(),
-        default_ttl: args.default_ttl.clone(),
-        storage: args.storage.clone(),
+        params: args.params,
+        default_ttl: args.default_ttl,
+        storage: args.storage,
     };
 
     if let Err(e) = start(&v).await {
@@ -48,7 +56,7 @@ async fn main() {
     }
 
     let varnish_work_folder = args.work_folder.clone();
-    let wfc = varnish_work_folder.clone();
+    let wfc = args.work_folder;
 
     tokio::spawn(async move {
         varnishlog::start(&varnish_work_folder).await;
@@ -65,14 +73,6 @@ async fn main() {
             process::exit(1);
         }
     };
-
-    let vcl = Vcl::new(
-        args.vcl_file,
-        args.template,
-        args.work_folder.clone(),
-        args.vcl_recv_snippet,
-        args.vcl_snippet,
-    );
 
     let arc_vcl = Arc::new(Mutex::new(vcl));
 

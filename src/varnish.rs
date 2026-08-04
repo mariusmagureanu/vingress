@@ -29,25 +29,25 @@ pub struct Varnish {
 pub async fn start(v: &Varnish) -> Result<(), VarnishError> {
     let varnish_addr = format!("0.0.0.0:{}", v.port);
 
-    let mut args: Vec<&str> = vec![
-        "-a",
-        &varnish_addr,
-        "-f",
-        &v.vcl,
-        "-n",
-        &v.work_dir,
-        "-t",
-        &v.default_ttl,
+    let mut args: Vec<String> = vec![
+        "-a".to_string(),
+        varnish_addr,
+        "-f".to_string(),
+        v.vcl.clone(),
+        "-n".to_string(),
+        v.work_dir.clone(),
+        "-t".to_string(),
+        v.default_ttl.clone(),
     ];
 
-    v.params.split_whitespace().for_each(|p| {
-        args.push("-p");
-        args.push(p);
-    });
+    for p in v.params.split_whitespace() {
+        args.push("-p".to_string());
+        args.push(p.to_string());
+    }
 
     if !v.storage.is_empty() {
-        args.push("-s");
-        args.push(&v.storage);
+        args.push("-s".to_string());
+        args.push(v.storage.clone());
     }
 
     info!("Starting Varnish with the following args: {args:?}");
